@@ -15,6 +15,24 @@ import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 import numpy as np # Import numpy here
 import zipfile # Import zipfile
+import nltk # Import nltk
+
+# Download necessary NLTK data
+@st.cache_resource # Cache the download
+def download_nltk_data():
+    try:
+        nltk.download('punkt', quiet=True)
+        nltk.download('punkt_tab', quiet=True)
+        nltk.download('stopwords', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+        nltk.download('wordnet', quiet=True)
+        nltk.download('omw-1.4', quiet=True)
+        st.success("NLTK data downloaded successfully!")
+    except Exception as e:
+        st.error(f"Error downloading NLTK data: {e}")
+
+download_nltk_data()
+
 
 # Define the directory where Transformer model is saved (assuming extracted files)
 # Or the zip file is located
@@ -312,7 +330,7 @@ if models:
                     }
 
                     nb_pred_std = models['nb_std_tfidf'].predict(std_tfidf_features)[0]
-                    nb_prob_std = models['nb_std_tfidf'].predict_proba(std_tfidf_features)[0]
+                    nb_prob_std = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0]
                     results['Standard TF-IDF + Naive Bayes'] = {
                         'prediction': nb_pred_std,
                         'confidence': max(nb_prob_std)
