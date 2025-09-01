@@ -6,6 +6,6 @@ nltk==3.9.1
 contractions==0.1.73
 datasets==2.21.0
 kaggle==1.6.14
-torch==2.5.1 -f https://download.pytorch.org/whl/cpu
+torch==2.5.1
 transformers==4.44.2
 tokenizers==0.19.1
