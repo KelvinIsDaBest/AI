@@ -1,6 +1,6 @@
 import streamlit as st
 import joblib
-from joblib import dump, load
+from joblib import dump, load # Explicitly import dump and load
 import os
 import re
 import string
@@ -13,11 +13,14 @@ from nltk.stem import WordNetLemmatizer
 from collections import defaultdict
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
-import numpy as np
-import zipfile
-import nltk
+import numpy as np # Import numpy here
+import zipfile # Import zipfile
+import nltk # Import nltk
+import matplotlib.pyplot as plt # Import matplotlib for plotting
 
-@st.cache_resource
+
+# Download necessary NLTK data
+@st.cache_resource # Cache the download
 def download_nltk_data():
     try:
         nltk.download('punkt', quiet=True)
@@ -26,20 +29,30 @@ def download_nltk_data():
         nltk.download('averaged_perceptron_tagger_eng', quiet=True) # Corrected resource name
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
+        st.success("NLTK data downloaded successfully!")
     except Exception as e:
         st.error(f"Error downloading NLTK data: {e}")
 
 download_nltk_data()
 
+
+# Define the directory where Transformer model is saved (assuming extracted files)
+# Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
 TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
+COMPARISON_DF_PATH = "./data_files/comparison_df.pkl" # Path to the saved comparison DataFrame
 
+# --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
+    # Check if the expected extracted directory exists and is not empty
     if not os.path.exists(extract_dir) or not os.listdir(extract_dir):
+        st.info(f"Transformer model directory not found or is empty. Attempting to extract from {zip_path}...")
         try:
+            # Check if the zip file exists at the provided path
             if os.path.exists(zip_path):
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
+                st.success("Transformer model extracted successfully.")
             else:
                  st.error(f"Error: Transformer zip file not found at {zip_path}.")
         except zipfile.BadZipFile:
@@ -47,7 +60,11 @@ def extract_transformer_model(zip_path, extract_dir):
         except Exception as e:
             st.error(f"An error occurred during Transformer model extraction: {e}")
     else:
-        pass
+        # st.info("Transformer model directory already exists and is not empty. Skipping extraction.")
+        pass # Do nothing if already extracted
+
+
+# --- Helper functions for preprocessing (copy from your notebook) ---
 
 def handle_negations(tokens):
     negation_words = {'not', 'no', 'never', 'nothing', 'nowhere', 'nobody', 'none',
@@ -228,41 +245,54 @@ def preprocess_review_pos_driven_improved(review_text, compound_list):
     return ' '.join(cleaned_review_with_compounds_without_stopword)
 
 
-# Load models
-@st.cache_resource
+# --- Load models ---
+
+@st.cache_resource # Cache the models to avoid reloading every time
 def load_models():
     models = {}
     try:
+        # Call the extraction function for Transformer model first
         extract_transformer_model(TRANSFORMER_ZIP_FILE, TRANSFORMER_MODEL_DIR)
 
+        # Load Transformer model and tokenizer
         if os.path.exists(TRANSFORMER_MODEL_DIR) and os.listdir(TRANSFORMER_MODEL_DIR):
              try:
                  models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
+                 st.write("Transformer model and tokenizer loaded.")
              except Exception as e:
                  st.error(f"Error loading Transformer model and tokenizer: {e}")
+                 # Handle case where transformer model loading fails
         else:
              st.warning(f"Transformer model directory not found or is empty at {TRANSFORMER_MODEL_DIR}. Transformer model will not be available.")
+             # Handle case where transformer model is not available
 
-        # Load Standard TF-IDF models
+
+        # Load Standard TF-IDF models from the root directory
         models['lr_std_tfidf'] = load('logistic_regression_model_for_std_tfidf_baseline.joblib')
         models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
         models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
         models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
+        st.write("Standard TF-IDF models loaded.")
 
-        # Load POS-Driven models
+
+        # Load POS-Driven models from the root directory
         models['lr_pos_driven'] = load('logistic_regression_model_for_pos_driven.joblib')
         models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
         models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
         models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
+        st.write("POS-Driven models loaded.")
 
-        # Load compound_list
+
+        # Load compound_list from the root directory
         try:
             models['compound_list'] = load('compound_list.joblib')
+            st.write("Compound list loaded.")
         except FileNotFoundError:
              st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
-             models['compound_list'] = []
+             models['compound_list'] = [] # Placeholder
+
 
         return models
     except FileNotFoundError as e:
@@ -272,13 +302,73 @@ def load_models():
         st.error(f"Error loading models: {e}")
         return None
 
+# Load the comparison DataFrame
+@st.cache_resource # Cache the DataFrame
+def load_comparison_data(file_path):
+    try:
+        comparison_df = pd.read_pickle(file_path)
+        st.write("Comparison data loaded.")
+        return comparison_df
+    except FileNotFoundError:
+        st.error(f"Comparison data file not found at {file_path}. The comparison graph will not be displayed.")
+        return None
+    except Exception as e:
+        st.error(f"Error loading comparison data: {e}")
+        return None
+
+comparison_df = load_comparison_data(COMPARISON_DF_PATH)
+
 
 models = load_models()
 
 if models:
-    # Streamlit App
-    st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
-    st.subheader("Movie Review Sentiment Analysis")
+    # --- Streamlit App ---
+    st.title("Movie Review Sentiment Analysis")
+
+    # Add section for Model Performance Comparison plot
+    st.subheader("Model Performance Comparison")
+    if comparison_df is not None:
+        metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
+        plot_df_individual = comparison_df.set_index('Model')[metrics]
+
+        fig, ax = plt.subplots(figsize=(12, 6)) # Adjusted figure size for Streamlit
+        bar_width = 0.15
+        x = np.arange(len(plot_df_individual.index))
+
+        for i, metric in enumerate(metrics):
+            metric_values = plot_df_individual[metric].values
+            bars = ax.bar(x + i * bar_width, metric_values, bar_width, label=metric)
+
+            # Add value labels
+            for bar in bars:
+                height = bar.get_height()
+                if pd.notna(height):
+                    ax.annotate(f'{height:.3f}', # Reduced precision for display
+                                xy=(bar.get_x() + bar.get_width() / 2, height),
+                                xytext=(0, 3),
+                                textcoords="offset points",
+                                ha='center', va='bottom',
+                                fontsize=7) # Reduced font size
+
+
+        ax.set_ylabel('Score')
+        ax.set_title('Model Performance Comparison')
+        ax.set_xticks(x + bar_width * (len(metrics) - 1) / 2)
+        ax.set_xticklabels(plot_df_individual.index, rotation=45, ha='right', fontsize=8) # Adjusted font size
+        ax.legend(loc='lower right') # Adjusted legend location
+
+        # Adjust y-axis limits
+        min_val = plot_df_individual.min().min() * 0.98 if not plot_df_individual.empty else 0.0
+        max_val = plot_df_individual.max().max() * 1.02 if not plot_df_individual.empty else 1.0
+        ax.set_ylim(min_val, max_val)
+
+        plt.tight_layout()
+        st.pyplot(fig) # Display the plot in Streamlit
+    else:
+        st.warning("Comparison data not available to display the graph.")
+
+
+    st.write("---") # Separator before prediction section
 
     user_input = st.text_area("Enter your movie review here:", height=200)
 
@@ -286,9 +376,11 @@ if models:
         if user_input:
             st.subheader("Analysis Results:")
 
+            # Perform sentiment analysis with each model
             results = {}
 
             # Standard TF-IDF models
+            # Check if the necessary standard models are loaded
             if all(model_name in models for model_name in ['lr_std_tfidf', 'nb_std_tfidf', 'svm_std_tfidf', 'tfidf_vectorizer_std']):
                 try:
                     processed_std = preprocess_review_standard_improved(user_input)
@@ -316,6 +408,7 @@ if models:
                     }
                 except Exception as e:
                      st.error(f"Error during Standard TF-IDF model prediction: {e}")
+                     # Add error results for standard models
                      results['Standard TF-IDF + Logistic Regression'] = {'prediction': 'Error', 'confidence': 0.0}
                      results['Standard TF-IDF + Naive Bayes'] = {'prediction': 'Error', 'confidence': 0.0}
                      results['Standard TF-IDF + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
