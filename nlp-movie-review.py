@@ -351,7 +351,7 @@ models, data = load_models_and_data() # Call the combined loading function
 
 if models:
     # --- Streamlit App ---
-    st.title("Movie Review Sentiment Analysis")
+    st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
     st.set_page_config(layout="wide") # Set layout to wide
 
 # Model Performance Comparison plot 
