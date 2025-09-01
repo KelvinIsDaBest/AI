@@ -6,4 +6,4 @@ st.set_page_config(
 )
 
 st.title("Main Page")
-st.sidebar.success("Select a page above")
+st.sidebar.success("nlp-movie-review.py")
