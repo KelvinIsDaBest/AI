@@ -384,7 +384,7 @@ if models:
         ax.set_title('Model Performance Comparison')
         ax.set_xticks(x + bar_width * (len(metrics) - 1) / 2)
         ax.set_xticklabels(plot_df_individual.index, rotation=45, ha='right', fontsize=8) # Adjusted font size
-        ax.legend(loc='upper right') # Adjusted legend location
+        ax.legend(loc='lower right') # Adjusted legend location
 
         # Adjust y-axis limits
         min_val = plot_df_individual.min().min() * 0.98 if not plot_df_individual.empty else 0.0
@@ -659,3 +659,4 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
