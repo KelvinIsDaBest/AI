@@ -27,7 +27,7 @@ def download_nltk_data():
         nltk.download('averaged_perceptron_tagger_eng', quiet=True) # Corrected resource name
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
-        st.success("NLTK data downloaded successfully!")
+        #st.success("NLTK data downloaded successfully!")
     except Exception as e:
         st.error(f"Error downloading NLTK data: {e}")
 
@@ -257,10 +257,9 @@ def load_models():
                  models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
-                 st.write("Transformer model and tokenizer loaded.")
+                 #st.write("Transformer model and tokenizer loaded.")
              except Exception as e:
                  st.error(f"Error loading Transformer model and tokenizer: {e}")
-                 # Handle case where transformer model loading fails
         else:
              st.warning(f"Transformer model directory not found or is empty at {TRANSFORMER_MODEL_DIR}. Transformer model will not be available.")
              # Handle case where transformer model is not available
@@ -271,7 +270,7 @@ def load_models():
         models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
         models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
         models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
-        st.write("Standard TF-IDF models loaded.")
+        #st.write("Standard TF-IDF models loaded.")
 
 
         # Load POS-Driven models from the root directory
@@ -279,13 +278,13 @@ def load_models():
         models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
         models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
         models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
-        st.write("POS-Driven models loaded.")
+        #st.write("POS-Driven models loaded.")
 
 
         # Load compound_list from the root directory
         try:
             models['compound_list'] = load('compound_list.joblib')
-            st.write("Compound list loaded.")
+            #st.write("Compound list loaded.")
         except FileNotFoundError:
              st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
              models['compound_list'] = [] # Placeholder
