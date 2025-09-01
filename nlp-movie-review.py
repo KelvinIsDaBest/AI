@@ -41,22 +41,6 @@ download_nltk_data()
 # Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
 TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
-COMPARISON_DF_PATH = "./data_files/comparison_df.pkl" # Path to the saved comparison DataFrame
-
-# Define paths for saved true and predicted labels (You need to save these in your notebook)
-TRUE_LABELS_STD_PATH = "./data_files/y_test_std.pkl"
-PRED_LABELS_LR_STD_PATH = "./data_files/lr_pred_std.pkl"
-PRED_LABELS_NB_STD_PATH = "./data_files/nb_pred_std.pkl"
-PRED_LABELS_SVM_STD_PATH = "./data_files/svm_pred_std.pkl"
-
-TRUE_LABELS_POS_PATH = "./data_files/y_test_pos.pkl"
-PRED_LABELS_LR_POS_PATH = "./data_files/lr_pred_pos.pkl"
-PRED_LABELS_NB_POS_PATH = "./data_files/nb_pred_pos.pkl"
-PRED_LABELS_SVM_POS_PATH = "./data_files/svm_pred_pos.pkl"
-
-TRUE_LABELS_TRANSFORMER_PATH = "./data_files/true_labels_transformer.pkl"
-PRED_LABELS_TRANSFORMER_PATH = "./data_files/predicted_labels_transformer.pkl"
-
 
 # --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
@@ -311,25 +295,23 @@ def load_models_and_data():
              models['compound_list'] = [] # Placeholder
 
         # Load the comparison DataFrame
-        data['comparison_df'] = load_comparison_data(COMPARISON_DF_PATH)
+        data['comparison_df'] = load_comparison_data('comparison_df.pkl')
 
 
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
         # You need to save these files in your notebook after evaluation
         try:
-            data['y_test_std'] = load(TRUE_LABELS_STD_PATH)
-            data['lr_pred_std'] = load(PRED_LABELS_LR_STD_PATH)
-            data['nb_pred_std'] = load(PRED_LABELS_NB_STD_PATH)
-            data['svm_pred_std'] = load(PRED_LABELS_SVM_STD_PATH)
+            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
+            data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
 
-            data['y_test_pos'] = load(TRUE_LABELS_POS_PATH)
-            data['lr_pred_pos'] = load(PRED_LABELS_LR_POS_PATH)
-            data['nb_pred_pos'] = load(PRED_LABELS_NB_POS_PATH)
-            data['svm_pred_pos'] = load(PRED_LABELS_SVM_POS_PATH)
-
-            # Transformer predictions need to be mapped to 'negative'/'positive' strings if they were 0/1
-            transformer_true_labels = load(TRUE_LABELS_TRANSFORMER_PATH)
-            transformer_predicted_labels = load(PRED_LABELS_TRANSFORMER_PATH)
+            data['y_test_pos'] = load('y_test_for_pos_driven.joblib')
+            data['lr_pred_pos'] = load('lr_predictions_for_pos_driven.joblib')
+            data['nb_pred_pos'] = load('nb_predictions_for_pos_driven.joblib')
+            data['svm_pred_pos'] = load('svm_predictions_for_pos_driven.joblib')
+            transformer_true_labels = load('true_labels.joblib')
+            transformer_predicted_labels = load('predicted_labels.joblib')
             label_map_transformer_to_str = {0: 'negative', 1: 'positive'}
             data['true_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_true_labels]
             data['predicted_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_predicted_labels]
