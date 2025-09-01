@@ -1,5 +1,6 @@
 import streamlit as st
 import joblib
+from joblib import dump, load # Explicitly import dump and load
 import os
 import re
 import string
@@ -15,29 +16,32 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 import numpy as np # Import numpy here
 import zipfile # Import zipfile
 
-# Define the directory where models are saved
+# Define the directory where Transformer model is saved (assuming extracted files)
+# Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
-TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file
+TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
 
 # --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
+    # Check if the expected extracted directory exists and is not empty
     if not os.path.exists(extract_dir) or not os.listdir(extract_dir):
-        st.info(f"Extracting Transformer model from {zip_path}...")
+        st.info(f"Transformer model directory not found or is empty. Attempting to extract from {zip_path}...")
         try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-            st.success("Transformer model extracted successfully.")
-        except FileNotFoundError:
-            st.error(f"Error: Transformer zip file not found at {zip_path}.")
+            # Check if the zip file exists at the provided path
+            if os.path.exists(zip_path):
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                st.success("Transformer model extracted successfully.")
+            else:
+                 st.error(f"Error: Transformer zip file not found at {zip_path}.")
         except zipfile.BadZipFile:
             st.error(f"Error: {zip_path} is not a valid zip file.")
         except Exception as e:
             st.error(f"An error occurred during Transformer model extraction: {e}")
     else:
-        pass
+        # st.info("Transformer model directory already exists and is not empty. Skipping extraction.")
+        pass # Do nothing if already extracted
 
-# Call the extraction function at the beginning of the script
-extract_transformer_model(TRANSFORMER_ZIP_FILE, TRANSFORMER_MODEL_DIR)
 
 # --- Helper functions for preprocessing (copy from your notebook) ---
 
@@ -226,30 +230,53 @@ def preprocess_review_pos_driven_improved(review_text, compound_list):
 def load_models():
     models = {}
     try:
-        # Load Standard TF-IDF models
+        # Call the extraction function for Transformer model first
+        extract_transformer_model(TRANSFORMER_ZIP_FILE, TRANSFORMER_MODEL_DIR)
+
+        # Load Transformer model and tokenizer
+        if os.path.exists(TRANSFORMER_MODEL_DIR) and os.listdir(TRANSFORMER_MODEL_DIR):
+             try:
+                 models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
+                 models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
+                 models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
+                 st.write("Transformer model and tokenizer loaded.")
+             except Exception as e:
+                 st.error(f"Error loading Transformer model and tokenizer: {e}")
+                 # Handle case where transformer model loading fails
+        else:
+             st.warning(f"Transformer model directory not found or is empty at {TRANSFORMER_MODEL_DIR}. Transformer model will not be available.")
+             # Handle case where transformer model is not available
+
+
+        # Load Standard TF-IDF models from the root directory
         models['lr_std_tfidf'] = load('logistic_regression_model_for_std_tfidf_baseline.joblib')
         models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
         models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
         models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
+        st.write("Standard TF-IDF models loaded.")
 
-        # Load POS-Driven models
+
+        # Load POS-Driven models from the root directory
         models['lr_pos_driven'] = load('logistic_regression_model_for_pos_driven.joblib')
         models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
         models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
         models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
+        st.write("POS-Driven models loaded.")
 
-        models['compound_list'] = load('compound_list.joblib')
 
-        # Load Transformer model and tokenizer
-        # Ensure the directory exists before loading
-        if os.path.exists(TRANSFORMER_MODEL_DIR):
-             models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
-             models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
-             models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
-             st.write("Transformer model and tokenizer loaded.")
-        else:
-             st.error(f"Transformer model directory not found at {TRANSFORMER_MODEL_DIR}.")
+        # Load compound_list from the root directory
+        try:
+            models['compound_list'] = load('compound_list.joblib')
+            st.write("Compound list loaded.")
+        except FileNotFoundError:
+             st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
+             models['compound_list'] = [] # Placeholder
+
+
         return models
+    except FileNotFoundError as e:
+        st.error(f"Error loading a joblib file: {e}. Please ensure all .joblib files are at the repository root.")
+        return None
     except Exception as e:
         st.error(f"Error loading models: {e}")
         return None
@@ -271,56 +298,87 @@ if models:
             results = {}
 
             # Standard TF-IDF models
-            processed_std = preprocess_review_standard_improved(user_input)
-            std_tfidf_features = models['tfidf_vectorizer_std'].transform([processed_std])
+            # Check if the necessary standard models are loaded
+            if all(model_name in models for model_name in ['lr_std_tfidf', 'nb_std_tfidf', 'svm_std_tfidf', 'tfidf_vectorizer_std']):
+                try:
+                    processed_std = preprocess_review_standard_improved(user_input)
+                    std_tfidf_features = models['tfidf_vectorizer_std'].transform([processed_std])
 
-            lr_pred_std = models['lr_std_tfidf'].predict(std_tfidf_features)[0]
-            lr_prob_std = models['lr_std_tfidf'].predict_proba(std_tfidf_features)[0]
-            results['Standard TF-IDF + Logistic Regression'] = {
-                'prediction': lr_pred_std,
-                'confidence': max(lr_prob_std)
-            }
+                    lr_pred_std = models['lr_std_tfidf'].predict(std_tfidf_features)[0]
+                    lr_prob_std = models['lr_std_tfidf'].predict_proba(std_tfidf_features)[0]
+                    results['Standard TF-IDF + Logistic Regression'] = {
+                        'prediction': lr_pred_std,
+                        'confidence': max(lr_prob_std)
+                    }
 
-            nb_pred_std = models['nb_std_tfidf'].predict(std_tfidf_features)[0]
-            nb_prob_std = models['nb_std_tfidf'].predict_proba(std_tfidf_features)[0]
-            results['Standard TF-IDF + Naive Bayes'] = {
-                'prediction': nb_pred_std,
-                'confidence': max(nb_prob_std)
-            }
+                    nb_pred_std = models['nb_std_tfidf'].predict(std_tfidf_features)[0]
+                    nb_prob_std = models['nb_std_tfidf'].predict_proba(std_tfidf_features)[0]
+                    results['Standard TF-IDF + Naive Bayes'] = {
+                        'prediction': nb_pred_std,
+                        'confidence': max(nb_prob_std)
+                    }
 
-            svm_pred_std = models['svm_std_tfidf'].predict(std_tfidf_features)[0]
-            svm_decision_std = models['svm_std_tfidf'].decision_function(std_tfidf_features)[0]
-            results['Standard TF-IDF + SVM'] = {
-                'prediction': svm_pred_std,
-                'confidence': abs(svm_decision_std)
-            }
+                    svm_pred_std = models['svm_std_tfidf'].predict(std_tfidf_features)[0]
+                    svm_decision_std = models['svm_std_tfidf'].decision_function(std_tfidf_features)[0]
+                    results['Standard TF-IDF + SVM'] = {
+                        'prediction': svm_pred_std,
+                        'confidence': abs(svm_decision_std)
+                    }
+                except Exception as e:
+                     st.error(f"Error during Standard TF-IDF model prediction: {e}")
+                     # Add error results for standard models
+                     results['Standard TF-IDF + Logistic Regression'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['Standard TF-IDF + Naive Bayes'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['Standard TF-IDF + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
+
+            else:
+                 st.warning("Standard TF-IDF models were not loaded successfully. Skipping predictions for these models.")
+                 results['Standard TF-IDF + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['Standard TF-IDF + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['Standard TF-IDF + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
 
             # POS-Driven models
-            # Ensure compound_list is available here
-            compound_list = models.get('compound_list', []) # Get compound list, default to empty if not loaded
-            processed_pos = preprocess_review_pos_driven_improved(user_input, compound_list)
-            pos_tfidf_features = models['tfidf_vectorizer_pos'].transform([processed_pos])
+            # Check if the necessary POS-Driven models are loaded
+            if all(model_name in models for model_name in ['lr_pos_driven', 'nb_pos_driven', 'svm_pos_driven', 'tfidf_vectorizer_pos']) and 'compound_list' in models:
+                try:
+                    compound_list = models.get('compound_list', []) # Get compound list, default to empty if not loaded
+                    processed_pos = preprocess_review_pos_driven_improved(user_input, compound_list)
+                    pos_tfidf_features = models['tfidf_vectorizer_pos'].transform([processed_pos])
 
-            lr_pred_pos = models['lr_pos_driven'].predict(pos_tfidf_features)[0]
-            lr_prob_pos = models['lr_pos_driven'].predict_proba(pos_tfidf_features)[0]
-            results['POS-Driven + Logistic Regression'] = {
-                'prediction': lr_pred_pos,
-                'confidence': max(lr_prob_pos)
-            }
+                    lr_pred_pos = models['lr_pos_driven'].predict(pos_tfidf_features)[0]
+                    lr_prob_pos = models['lr_pos_driven'].predict_proba(pos_tfidf_features)[0]
+                    results['POS-Driven + Logistic Regression'] = {
+                        'prediction': lr_pred_pos,
+                        'confidence': max(lr_prob_pos)
+                    }
 
-            nb_pred_pos = models['nb_pos_driven'].predict(pos_tfidf_features)[0]
-            nb_prob_pos = models['nb_pos_driven'].predict_proba(nb_prob_pos)[0] # Corrected index
-            results['POS-Driven + Naive Bayes'] = {
-                'prediction': nb_pred_pos,
-                'confidence': max(nb_prob_pos)
-            }
+                    nb_pred_pos = models['nb_pos_driven'].predict(pos_tfidf_features)[0]
+                    nb_prob_pos = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0] # Corrected typo here
+                    results['POS-Driven + Naive Bayes'] = {
+                        'prediction': nb_pred_pos,
+                        'confidence': max(nb_prob_pos)
+                    }
 
-            svm_pred_pos = models['svm_pos_driven'].predict(pos_tfidf_features)[0]
-            svm_decision_pos = models['svm_pos_driven'].decision_function(pos_tfidf_features)[0]
-            results['POS-Driven + SVM'] = {
-                'prediction': svm_pred_pos,
-                'confidence': abs(svm_decision_pos)
-            }
+                    svm_pred_pos = models['svm_pos_driven'].predict(pos_tfidf_features)[0]
+                    svm_decision_pos = models['svm_pos_driven'].decision_function(pos_tfidf_features)[0]
+                    results['POS-Driven + SVM'] = {
+                        'prediction': svm_pred_pos,
+                        'confidence': abs(svm_decision_pos)
+                    }
+                except Exception as e:
+                     st.error(f"Error during POS-Driven model prediction: {e}")
+                     # Add error results for POS-Driven models
+                     results['POS-Driven + Logistic Regression'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['POS-Driven + Naive Bayes'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['POS-Driven + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
+
+            else:
+                 st.warning("POS-Driven models were not loaded successfully. Skipping predictions for these models.")
+                 results['POS-Driven + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['POS-Driven + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['POS-Driven + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
 
             # Transformer model
             try:
