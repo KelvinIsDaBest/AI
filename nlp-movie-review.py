@@ -360,7 +360,7 @@ if models:
         metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
         plot_df_individual = data['comparison_df'].set_index('Model')[metrics]
 
-        fig, ax = plt.subplots(figsize=(12, 6)) # Adjusted figure size for Streamlit
+        fig, ax = plt.subplots(figsize=(12, 10)) # Adjusted figure size for Streamlit
         bar_width = 0.15
         x = np.arange(len(plot_df_individual.index))
 
@@ -384,7 +384,7 @@ if models:
         ax.set_title('Model Performance Comparison')
         ax.set_xticks(x + bar_width * (len(metrics) - 1) / 2)
         ax.set_xticklabels(plot_df_individual.index, rotation=45, ha='right', fontsize=8) # Adjusted font size
-        ax.legend(loc='lower right') # Adjusted legend location
+        ax.legend(loc='upper right') # Adjusted legend location
 
         # Adjust y-axis limits
         min_val = plot_df_individual.min().min() * 0.98 if not plot_df_individual.empty else 0.0
@@ -659,5 +659,3 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
-
-
