@@ -36,12 +36,12 @@ TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file i
 
 def extract_transformer_model(zip_path, extract_dir):
     if not os.path.exists(extract_dir) or not os.listdir(extract_dir):
-        #st.info(f"Transformer model directory not found or is empty. Attempting to extract from {zip_path}...")
+        st.info(f"Transformer model directory not found or is empty. Attempting to extract from {zip_path}...")
         try:
             if os.path.exists(zip_path):
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
-                #st.success("Transformer model extracted successfully.")
+                st.success("Transformer model extracted successfully.")
             else:
                  st.error(f"Error: Transformer zip file not found at {zip_path}.")
         except zipfile.BadZipFile:
@@ -279,7 +279,8 @@ models = load_models()
 
 if models:
     # Streamlit App
-    st.title("Movie Review Sentiment Analysis")
+    st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
+    st.subheader("Movie Review Sentiment Analysis")
 
     user_input = st.text_area("Enter your movie review here:", height=200)
 
