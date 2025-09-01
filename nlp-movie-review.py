@@ -324,7 +324,8 @@ models = load_models()
 if models:
     # --- Streamlit App ---
     st.title("Movie Review Sentiment Analysis")
-
+    st.set_page_config(layout="wide")
+    
     # Add section for Model Performance Comparison plot
     st.subheader("Model Performance Comparison")
     if comparison_df is not None:
