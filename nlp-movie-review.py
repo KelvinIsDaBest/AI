@@ -471,8 +471,8 @@ if models:
 
         st.write("### Transformer")
         # Create a single column for the Transformer confusion matrix
-        col_transformer, = st.columns(1) # Transformer in its own row
-        with col_transformer:
+        col_transformer_plot, col_spacer1, col_spacer2 = st.columns(3) # Transformer in its own row
+        with col_transformer_plot:
             # Clear previous plot
             plt.close('all')
             # Transformer
