@@ -17,6 +17,7 @@ import numpy as np # Import numpy here
 import zipfile # Import zipfile
 import nltk # Import nltk
 import matplotlib.pyplot as plt # Import matplotlib for plotting
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay # Import ConfusionMatrixDisplay
 
 
 # Download necessary NLTK data
@@ -40,7 +41,6 @@ download_nltk_data()
 # Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
 TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
-COMPARISON_DF_PATH = "comparison_df.pkl" # Path to the saved comparison DataFrame
 
 # --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
@@ -245,11 +245,12 @@ def preprocess_review_pos_driven_improved(review_text, compound_list):
     return ' '.join(cleaned_review_with_compounds_without_stopword)
 
 
-# --- Load models ---
+# --- Load models and data ---
 
 @st.cache_resource # Cache the models to avoid reloading every time
-def load_models():
+def load_models_and_data():
     models = {}
+    data = {}
     try:
         # Call the extraction function for Transformer model first
         extract_transformer_model(TRANSFORMER_ZIP_FILE, TRANSFORMER_MODEL_DIR)
@@ -293,14 +294,43 @@ def load_models():
              st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
              models['compound_list'] = [] # Placeholder
 
+        # Load the comparison DataFrame
+        data['comparison_df'] = load_comparison_data('comparison_df.pkl')
 
-        return models
+
+        # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
+        # You need to save these files in your notebook after evaluation
+        try:
+            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
+            data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
+
+            data['y_test_pos'] = load('y_test_for_pos_driven.joblib')
+            data['lr_pred_pos'] = load('lr_predictions_for_pos_driven.joblib')
+            data['nb_pred_pos'] = load('nb_predictions_for_pos_driven.joblib')
+            data['svm_pred_pos'] = load('svm_predictions_for_pos_driven.joblib')
+            transformer_true_labels = load('true_labels.joblib')
+            transformer_predicted_labels = load('predicted_labels.joblib')
+
+            label_map_transformer_to_str = {0: 'negative', 1: 'positive'}
+            data['true_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_true_labels]
+            data['predicted_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_predicted_labels]
+            st.write("True and predicted labels loaded for Confusion Matrices.")
+
+        except FileNotFoundError as e:
+             st.warning(f"Confusion Matrix data file not found: {e}. Confusion Matrices will not be displayed.")
+        except Exception as e:
+             st.error(f"Error loading Confusion Matrix data: {e}")
+
+
+        return models, data
     except FileNotFoundError as e:
-        st.error(f"Error loading a joblib file: {e}. Please ensure all .joblib files are at the repository root.")
-        return None
+        st.error(f"Error loading a model file: {e}. Please ensure all model files are at the repository root or in the specified directories.")
+        return None, None
     except Exception as e:
-        st.error(f"Error loading models: {e}")
-        return None
+        st.error(f"Error loading models and data: {e}")
+        return None, None
 
 # Load the comparison DataFrame
 @st.cache_resource # Cache the DataFrame
@@ -316,23 +346,21 @@ def load_comparison_data(file_path):
         st.error(f"Error loading comparison data: {e}")
         return None
 
-comparison_df = load_comparison_data("comparison_df.pkl")
 
-
-models = load_models()
+models, data = load_models_and_data() # Call the combined loading function
 
 if models:
     # --- Streamlit App ---
-    st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
-    st.set_page_config(layout="wide")
+    st.title("Movie Review Sentiment Analysis")
+    st.set_page_config(layout="wide") # Set layout to wide
 
     # Add section for Model Performance Comparison plot
     st.subheader("Model Performance Comparison")
-    if comparison_df is not None:
+    if data and 'comparison_df' in data and data['comparison_df'] is not None:
         metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
-        plot_df_individual = comparison_df.set_index('Model')[metrics]
+        plot_df_individual = data['comparison_df'].set_index('Model')[metrics]
 
-        fig, ax = plt.subplots(figsize=(10, 5)) # Adjusted figure size for Streamlit
+        fig, ax = plt.subplots(figsize=(12, 6)) # Adjusted figure size for Streamlit
         bar_width = 0.15
         x = np.arange(len(plot_df_individual.index))
 
@@ -370,6 +398,92 @@ if models:
 
 
     st.write("---") # Separator before prediction section
+    st.subheader("Confusion Matrices")
+
+    # Add Confusion Matrices (Assuming true and predicted labels are loaded into the 'data' dictionary)
+    classes = ['negative', 'positive'] # Define classes for confusion matrix
+
+    if data and 'y_test_std' in data and 'lr_pred_std' in data and 'nb_pred_std' in data and 'svm_pred_std' in data and \
+            'y_test_pos' in data and 'lr_pred_pos' in data and 'nb_pred_pos' in data and 'svm_pred_pos' in data and \
+            'true_labels_transformer_str' in data and 'predicted_labels_transformer_str' in data:
+
+        col1, col2, col3 = st.columns(3) # Use columns for layout
+
+        # Standard TF-IDF Confusion Matrices
+        with col1:
+            st.write("### Standard TF-IDF")
+            # LR
+            cm_lr_std = confusion_matrix(data['y_test_std'], data['lr_pred_std'], labels=classes)
+            disp_lr_std = ConfusionMatrixDisplay(confusion_matrix=cm_lr_std, display_labels=classes)
+            fig_lr_std, ax_lr_std = plt.subplots()
+            disp_lr_std.plot(cmap=plt.cm.Blues, ax=ax_lr_std)
+            ax_lr_std.set_title('LR (Standard TF-IDF)')
+            st.pyplot(fig_lr_std)
+
+            # NB
+            cm_nb_std = confusion_matrix(data['y_test_std'], data['nb_pred_std'], labels=classes)
+            disp_nb_std = ConfusionMatrixDisplay(confusion_matrix=cm_nb_std, display_labels=classes)
+            fig_nb_std, ax_nb_std = plt.subplots()
+            disp_nb_std.plot(cmap=plt.cm.Blues, ax=ax_nb_std)
+            ax_nb_std.set_title('Naive Bayes (Standard TF-IDF)')
+            st.pyplot(fig_nb_std)
+
+            # SVM
+            cm_svm_std = confusion_matrix(data['y_test_std'], data['svm_pred_std'], labels=classes)
+            disp_svm_std = ConfusionMatrixDisplay(confusion_matrix=cm_svm_std, display_labels=classes)
+            fig_svm_std, ax_svm_std = plt.subplots()
+            disp_svm_std.plot(cmap=plt.cm.Blues, ax=ax_svm_std)
+            ax_svm_std.set_title('SVM (Standard TF-IDF)')
+            st.pyplot(fig_svm_std)
+
+
+        # POS-Driven Confusion Matrices
+        with col2:
+            st.write("### POS-Driven")
+            # LR
+            cm_lr_pos = confusion_matrix(data['y_test_pos'], data['lr_pred_pos'], labels=classes)
+            disp_lr_pos = ConfusionMatrixDisplay(confusion_matrix=cm_lr_pos, display_labels=classes)
+            fig_lr_pos, ax_lr_pos = plt.subplots()
+            disp_lr_pos.plot(cmap=plt.cm.Blues, ax=ax_lr_pos)
+            ax_lr_pos.set_title('LR (POS-Driven)')
+            st.pyplot(fig_lr_pos)
+
+            # NB
+            cm_nb_pos = confusion_matrix(data['y_test_pos'], data['nb_pred_pos'], labels=classes)
+            disp_nb_pos = ConfusionMatrixDisplay(confusion_matrix=cm_nb_pos, display_labels=classes)
+            fig_nb_pos, ax_nb_pos = plt.subplots()
+            disp_nb_pos.plot(cmap=plt.cm.Blues, ax=ax_nb_pos)
+            ax_nb_pos.set_title('Naive Bayes (POS-Driven)')
+            st.pyplot(fig_nb_pos)
+
+            # SVM
+            cm_svm_pos = confusion_matrix(data['y_test_pos'], data['svm_pred_pos'], labels=classes)
+            disp_svm_pos = ConfusionMatrixDisplay(confusion_matrix=cm_svm_pos, display_labels=classes)
+            fig_svm_pos, ax_svm_pos = plt.subplots()
+            disp_svm_pos.plot(cmap=plt.cm.Blues, ax=ax_svm_pos)
+            ax_svm_pos.set_title('SVM (POS-Driven)')
+            st.pyplot(fig_svm_pos)
+
+        # Transformer Confusion Matrix
+        with col3:
+            st.write("### Transformer")
+            # Transformer
+            # Note: Transformer predictions are 0/1, so we need to map them back to string labels or use 0/1 labels for confusion matrix
+            # Using string labels for consistency with others
+            cm_transformer = confusion_matrix(data['true_labels_transformer_str'], data['predicted_labels_transformer_str'], labels=classes)
+            disp_transformer = ConfusionMatrixDisplay(confusion_matrix=cm_transformer, display_labels=classes)
+            fig_transformer, ax_transformer = plt.subplots()
+            disp_transformer.plot(cmap=plt.cm.Blues, ax=ax_transformer)
+            ax_transformer.set_title('Transformer')
+            st.pyplot(fig_transformer)
+
+
+    else:
+        st.warning("True and predicted labels not available to display Confusion Matrices. Please ensure the data files are saved and accessible.")
+
+
+    st.write("---") # Separator before prediction section
+
 
     user_input = st.text_area("Enter your movie review here:", height=200)
 
@@ -486,6 +600,7 @@ if models:
             except Exception as e:
                  st.error(f"Error with Transformer prediction: {e}")
                  results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
+
 
 
             # Display results
