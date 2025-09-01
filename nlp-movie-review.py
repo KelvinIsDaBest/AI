@@ -372,7 +372,7 @@ if models:
             for bar in bars:
                 height = bar.get_height()
                 if pd.notna(height):
-                    ax.annotate(f'{height:.3f}', # Reduced precision for display
+                    ax.annotate(f'{height:.4f}', # Reduced precision for display
                                 xy=(bar.get_x() + bar.get_width() / 2, height),
                                 xytext=(0, 3),
                                 textcoords="offset points",
