@@ -41,6 +41,22 @@ download_nltk_data()
 # Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
 TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
+COMPARISON_DF_PATH = "./data_files/comparison_df.pkl" # Path to the saved comparison DataFrame
+
+# Define paths for saved true and predicted labels (You need to save these in your notebook)
+TRUE_LABELS_STD_PATH = "./data_files/y_test_std.pkl"
+PRED_LABELS_LR_STD_PATH = "./data_files/lr_pred_std.pkl"
+PRED_LABELS_NB_STD_PATH = "./data_files/nb_pred_std.pkl"
+PRED_LABELS_SVM_STD_PATH = "./data_files/svm_pred_std.pkl"
+
+TRUE_LABELS_POS_PATH = "./data_files/y_test_pos.pkl"
+PRED_LABELS_LR_POS_PATH = "./data_files/lr_pred_pos.pkl"
+PRED_LABELS_NB_POS_PATH = "./data_files/nb_pred_pos.pkl"
+PRED_LABELS_SVM_POS_PATH = "./data_files/svm_pred_pos.pkl"
+
+TRUE_LABELS_TRANSFORMER_PATH = "./data_files/true_labels_transformer.pkl"
+PRED_LABELS_TRANSFORMER_PATH = "./data_files/predicted_labels_transformer.pkl"
+
 
 # --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
@@ -295,24 +311,25 @@ def load_models_and_data():
              models['compound_list'] = [] # Placeholder
 
         # Load the comparison DataFrame
-        data['comparison_df'] = load_comparison_data('comparison_df.pkl')
+        data['comparison_df'] = load_comparison_data(COMPARISON_DF_PATH)
 
 
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
         # You need to save these files in your notebook after evaluation
         try:
-            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
-            data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
-            data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
-            data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
+            data['y_test_std'] = load(TRUE_LABELS_STD_PATH)
+            data['lr_pred_std'] = load(PRED_LABELS_LR_STD_PATH)
+            data['nb_pred_std'] = load(PRED_LABELS_NB_STD_PATH)
+            data['svm_pred_std'] = load(PRED_LABELS_SVM_STD_PATH)
 
-            data['y_test_pos'] = load('y_test_for_pos_driven.joblib')
-            data['lr_pred_pos'] = load('lr_predictions_for_pos_driven.joblib')
-            data['nb_pred_pos'] = load('nb_predictions_for_pos_driven.joblib')
-            data['svm_pred_pos'] = load('svm_predictions_for_pos_driven.joblib')
-            transformer_true_labels = load('true_labels.joblib')
-            transformer_predicted_labels = load('predicted_labels.joblib')
+            data['y_test_pos'] = load(TRUE_LABELS_POS_PATH)
+            data['lr_pred_pos'] = load(PRED_LABELS_LR_POS_PATH)
+            data['nb_pred_pos'] = load(PRED_LABELS_NB_POS_PATH)
+            data['svm_pred_pos'] = load(PRED_LABELS_SVM_POS_PATH)
 
+            # Transformer predictions need to be mapped to 'negative'/'positive' strings if they were 0/1
+            transformer_true_labels = load(TRUE_LABELS_TRANSFORMER_PATH)
+            transformer_predicted_labels = load(PRED_LABELS_TRANSFORMER_PATH)
             label_map_transformer_to_str = {0: 'negative', 1: 'positive'}
             data['true_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_true_labels]
             data['predicted_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_predicted_labels]
@@ -320,6 +337,7 @@ def load_models_and_data():
 
         except FileNotFoundError as e:
              st.warning(f"Confusion Matrix data file not found: {e}. Confusion Matrices will not be displayed.")
+             # Handle case where confusion matrix data is not available
         except Exception as e:
              st.error(f"Error loading Confusion Matrix data: {e}")
 
@@ -407,28 +425,30 @@ if models:
             'y_test_pos' in data and 'lr_pred_pos' in data and 'nb_pred_pos' in data and 'svm_pred_pos' in data and \
             'true_labels_transformer_str' in data and 'predicted_labels_transformer_str' in data:
 
-        col1, col2, col3 = st.columns(3) # Use columns for layout
-
-        # Standard TF-IDF Confusion Matrices
-        with col1:
-            st.write("### Standard TF-IDF")
-            # LR
+        st.write("### Standard TF-IDF")
+        # Create columns within the Standard TF-IDF section for horizontal layout
+        col_std_lr, col_std_nb, col_std_svm = st.columns(3)
+        with col_std_lr:
+            # Clear previous plot
+            plt.close('all')
             cm_lr_std = confusion_matrix(data['y_test_std'], data['lr_pred_std'], labels=classes)
             disp_lr_std = ConfusionMatrixDisplay(confusion_matrix=cm_lr_std, display_labels=classes)
             fig_lr_std, ax_lr_std = plt.subplots()
             disp_lr_std.plot(cmap=plt.cm.Blues, ax=ax_lr_std)
             ax_lr_std.set_title('LR (Standard TF-IDF)')
             st.pyplot(fig_lr_std)
-
-            # NB
+        with col_std_nb:
+            # Clear previous plot
+            plt.close('all')
             cm_nb_std = confusion_matrix(data['y_test_std'], data['nb_pred_std'], labels=classes)
             disp_nb_std = ConfusionMatrixDisplay(confusion_matrix=cm_nb_std, display_labels=classes)
             fig_nb_std, ax_nb_std = plt.subplots()
             disp_nb_std.plot(cmap=plt.cm.Blues, ax=ax_nb_std)
             ax_nb_std.set_title('Naive Bayes (Standard TF-IDF)')
             st.pyplot(fig_nb_std)
-
-            # SVM
+        with col_std_svm:
+            # Clear previous plot
+            plt.close('all')
             cm_svm_std = confusion_matrix(data['y_test_std'], data['svm_pred_std'], labels=classes)
             disp_svm_std = ConfusionMatrixDisplay(confusion_matrix=cm_svm_std, display_labels=classes)
             fig_svm_std, ax_svm_std = plt.subplots()
@@ -436,27 +456,30 @@ if models:
             ax_svm_std.set_title('SVM (Standard TF-IDF)')
             st.pyplot(fig_svm_std)
 
-
-        # POS-Driven Confusion Matrices
-        with col2:
-            st.write("### POS-Driven")
-            # LR
+        st.write("### POS-Driven")
+        # Create columns within the POS-Driven section for horizontal layout
+        col_pos_lr, col_pos_nb, col_pos_svm = st.columns(3)
+        with col_pos_lr:
+            # Clear previous plot
+            plt.close('all')
             cm_lr_pos = confusion_matrix(data['y_test_pos'], data['lr_pred_pos'], labels=classes)
             disp_lr_pos = ConfusionMatrixDisplay(confusion_matrix=cm_lr_pos, display_labels=classes)
             fig_lr_pos, ax_lr_pos = plt.subplots()
             disp_lr_pos.plot(cmap=plt.cm.Blues, ax=ax_lr_pos)
             ax_lr_pos.set_title('LR (POS-Driven)')
             st.pyplot(fig_lr_pos)
-
-            # NB
+        with col_pos_nb:
+            # Clear previous plot
+            plt.close('all')
             cm_nb_pos = confusion_matrix(data['y_test_pos'], data['nb_pred_pos'], labels=classes)
             disp_nb_pos = ConfusionMatrixDisplay(confusion_matrix=cm_nb_pos, display_labels=classes)
             fig_nb_pos, ax_nb_pos = plt.subplots()
             disp_nb_pos.plot(cmap=plt.cm.Blues, ax=ax_nb_pos)
             ax_nb_pos.set_title('Naive Bayes (POS-Driven)')
             st.pyplot(fig_nb_pos)
-
-            # SVM
+        with col_pos_svm:
+            # Clear previous plot
+            plt.close('all')
             cm_svm_pos = confusion_matrix(data['y_test_pos'], data['svm_pred_pos'], labels=classes)
             disp_svm_pos = ConfusionMatrixDisplay(confusion_matrix=cm_svm_pos, display_labels=classes)
             fig_svm_pos, ax_svm_pos = plt.subplots()
@@ -464,9 +487,12 @@ if models:
             ax_svm_pos.set_title('SVM (POS-Driven)')
             st.pyplot(fig_svm_pos)
 
-        # Transformer Confusion Matrix
-        with col3:
-            st.write("### Transformer")
+        st.write("### Transformer")
+        # Create a single column for the Transformer confusion matrix
+        col_transformer, = st.columns(1) # Transformer in its own row
+        with col_transformer:
+            # Clear previous plot
+            plt.close('all')
             # Transformer
             # Note: Transformer predictions are 0/1, so we need to map them back to string labels or use 0/1 labels for confusion matrix
             # Using string labels for consistency with others
