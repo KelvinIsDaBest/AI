@@ -24,7 +24,7 @@ def download_nltk_data():
         nltk.download('punkt', quiet=True)
         nltk.download('punkt_tab', quiet=True)
         nltk.download('stopwords', quiet=True)
-        nltk.download('averaged_perceptron_tagger', quiet=True) # Use 'averaged_perceptron_tagger' as per NLTK download output
+        nltk.download('averaged_perceptron_tagger_eng', quiet=True) # Corrected resource name
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
         st.success("NLTK data downloaded successfully!")
