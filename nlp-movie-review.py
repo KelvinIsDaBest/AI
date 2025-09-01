@@ -354,14 +354,14 @@ if models:
     st.title("Movie Review Sentiment Analysis")
     st.set_page_config(layout="wide") # Set layout to wide
 
-    # Add section for Model Performance Comparison plot
+# Model Performance Comparison plot 
     st.subheader("Model Performance Comparison")
     if data and 'comparison_df' in data and data['comparison_df'] is not None:
         metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
         plot_df_individual = data['comparison_df'].set_index('Model')[metrics]
 
         fig, ax = plt.subplots(figsize=(16, 8)) # Adjusted figure size for Streamlit
-        bar_width = 0.2
+        bar_width = 0.20
         x = np.arange(len(plot_df_individual.index))
 
         for i, metric in enumerate(metrics):
@@ -377,7 +377,7 @@ if models:
                                 xytext=(0, 3),
                                 textcoords="offset points",
                                 ha='center', va='bottom',
-                                fontsize=7) # Reduced font size
+                                fontsize=8) # Reduced font size
 
 
         ax.set_ylabel('Score')
@@ -396,11 +396,11 @@ if models:
     else:
         st.warning("Comparison data not available to display the graph.")
 
-
+# Confusion Matrices
     st.write("---") # Separator before prediction section
     st.subheader("Confusion Matrices")
 
-    # Add Confusion Matrices (Assuming true and predicted labels are loaded into the 'data' dictionary)
+
     classes = ['negative', 'positive'] # Define classes for confusion matrix
 
     if data and 'y_test_std' in data and 'lr_pred_std' in data and 'nb_pred_std' in data and 'svm_pred_std' in data and \
@@ -491,7 +491,7 @@ if models:
 
 
     st.write("---") # Separator before prediction section
-
+    st.subheader("Predict Movie Review")
 
     user_input = st.text_area("Enter your movie review here:", height=200)
 
@@ -659,6 +659,3 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
-
-
-
