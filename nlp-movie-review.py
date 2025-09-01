@@ -316,7 +316,7 @@ def load_comparison_data(file_path):
         st.error(f"Error loading comparison data: {e}")
         return None
 
-comparison_df = load_comparison_data(comparison_df.pkl)
+comparison_df = load_comparison_data("comparison_df.pkl")
 
 
 models = load_models()
