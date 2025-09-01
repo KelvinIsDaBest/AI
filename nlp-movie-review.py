@@ -361,7 +361,7 @@ if models:
         plot_df_individual = data['comparison_df'].set_index('Model')[metrics]
 
         fig, ax = plt.subplots(figsize=(16, 8)) # Adjusted figure size for Streamlit
-        bar_width = 0.15
+        bar_width = 0.2
         x = np.arange(len(plot_df_individual.index))
 
         for i, metric in enumerate(metrics):
@@ -659,4 +659,5 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
 
