@@ -24,7 +24,7 @@ def download_nltk_data():
         nltk.download('punkt', quiet=True)
         nltk.download('punkt_tab', quiet=True)
         nltk.download('stopwords', quiet=True)
-        nltk.download('averaged_perceptron_tagger', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True) # Use 'averaged_perceptron_tagger' as per NLTK download output
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
         st.success("NLTK data downloaded successfully!")
@@ -329,8 +329,9 @@ if models:
                         'confidence': max(lr_prob_std)
                     }
 
+                    # Corrected typo here - should use std_tfidf_features
                     nb_pred_std = models['nb_std_tfidf'].predict(std_tfidf_features)[0]
-                    nb_prob_std = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0]
+                    nb_prob_std = models['nb_std_tfidf'].predict_proba(std_tfidf_features)[0]
                     results['Standard TF-IDF + Naive Bayes'] = {
                         'prediction': nb_pred_std,
                         'confidence': max(nb_prob_std)
