@@ -377,7 +377,7 @@ if models:
                                 xytext=(0, 3),
                                 textcoords="offset points",
                                 ha='center', va='bottom',
-                                fontsize=8) # Reduced font size
+                                fontsize=7) # Reduced font size
 
 
         ax.set_ylabel('Score')
@@ -659,5 +659,6 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
 
 
