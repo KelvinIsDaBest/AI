@@ -1,0 +1,10 @@
+pandas==2.2.2
+scikit-learn==1.6.1
+nltk==3.9.1
+contractions==0.1.73
+transformers==4.55.4
+torch==2.8.0+cu126
+datasets==4.0.0
+joblib==1.5.1
+streamlit
+kaggle
