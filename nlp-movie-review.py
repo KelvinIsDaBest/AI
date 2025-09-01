@@ -40,7 +40,7 @@ download_nltk_data()
 # Or the zip file is located
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
 TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file if using zip
-COMPARISON_DF_PATH = "./data_files/comparison_df.pkl" # Path to the saved comparison DataFrame
+COMPARISON_DF_PATH = "comparison_df.pkl" # Path to the saved comparison DataFrame
 
 # --- Function to extract transformer model if needed ---
 def extract_transformer_model(zip_path, extract_dir):
@@ -316,7 +316,7 @@ def load_comparison_data(file_path):
         st.error(f"Error loading comparison data: {e}")
         return None
 
-comparison_df = load_comparison_data(COMPARISON_DF_PATH)
+comparison_df = load_comparison_data(comparison_df.pkl)
 
 
 models = load_models()
