@@ -1,5 +1,3 @@
-!pip install streamlit -q
-
 import streamlit as st
 import joblib
 import os
@@ -15,10 +13,31 @@ from collections import defaultdict
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 import numpy as np # Import numpy here
+import zipfile # Import zipfile
 
 # Define the directory where models are saved
-MODEL_SAVE_DIR = "./saved_models"
 TRANSFORMER_MODEL_DIR = "./sentiment_model"
+TRANSFORMER_ZIP_FILE = "sentiment_model.zip" # Define the name of the zip file
+
+# --- Function to extract transformer model if needed ---
+def extract_transformer_model(zip_path, extract_dir):
+    if not os.path.exists(extract_dir) or not os.listdir(extract_dir):
+        st.info(f"Extracting Transformer model from {zip_path}...")
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            st.success("Transformer model extracted successfully.")
+        except FileNotFoundError:
+            st.error(f"Error: Transformer zip file not found at {zip_path}.")
+        except zipfile.BadZipFile:
+            st.error(f"Error: {zip_path} is not a valid zip file.")
+        except Exception as e:
+            st.error(f"An error occurred during Transformer model extraction: {e}")
+    else:
+        pass
+
+# Call the extraction function at the beginning of the script
+extract_transformer_model(TRANSFORMER_ZIP_FILE, TRANSFORMER_MODEL_DIR)
 
 # --- Helper functions for preprocessing (copy from your notebook) ---
 
@@ -208,47 +227,28 @@ def load_models():
     models = {}
     try:
         # Load Standard TF-IDF models
-        models['lr_std_tfidf'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'lr_std_tfidf_model.pkl'))
-        models['nb_std_tfidf'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'nb_std_tfidf_model.pkl'))
-        models['svm_std_tfidf'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'svm_std_tfidf_model.pkl'))
-        models['tfidf_vectorizer_std'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'tfidf_vectorizer_std.pkl'))
+        models['lr_std_tfidf'] = load('logistic_regression_model_for_std_tfidf_baseline.joblib')
+        models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
+        models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
+        models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
 
         # Load POS-Driven models
-        models['lr_pos_driven'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'lr_pos_driven_model.pkl'))
-        models['nb_pos_driven'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'nb_pos_driven_model.pkl'))
-        models['svm_pos_driven'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'svm_pos_driven_model.pkl'))
-        models['tfidf_vectorizer_pos'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'tfidf_vectorizer_pos.pkl'))
+        models['lr_pos_driven'] = load('logistic_regression_model_for_pos_driven.joblib')
+        models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
+        models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
+        models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
+
+        models['compound_list'] = load('compound_list.joblib')
 
         # Load Transformer model and tokenizer
-        models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
-        models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
-        models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
-
-
-        # Need to recreate compound_list from the training data or save it separately
-        # For now, we'll use a placeholder or load it if you saved it.
-        # If you didn't save it, you'll need to re-generate it from the training data or a subset.
-        # Assuming you saved 'compound_list' during training, load it here:
-        # models['compound_list'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'compound_list.pkl'))
-        # If not saved, you might need to recompute it on a small dataset or include it directly.
-        # For demonstration, let's assume we have a saved compound_list
-        # If you didn't save it, replace this with how you would get it.
-        # Example placeholder (replace with actual loading or generation)
-        # For the POS-Driven preprocess function to work, compound_list is needed.
-        # You need to ensure 'compound_list' is available when calling 'preprocess_review_pos_driven_improved'
-        # If you did not save the 'compound_list', you might need to regenerate it
-        # or include a pre-computed list in your app.
-        # Let's assume you saved it as 'compound_list.pkl'
-        try:
-            models['compound_list'] = joblib.load(os.path.join(MODEL_SAVE_DIR, 'compound_list.pkl'))
-            st.write("Compound list loaded.")
-        except FileNotFoundError:
-             st.warning("Compound list not found. POS-Driven models might not work correctly.")
-             # You might need to add logic here to handle this case,
-             # e.g., regenerate the list or use a default empty list.
-             models['compound_list'] = [] # Placeholder
-
-
+        # Ensure the directory exists before loading
+        if os.path.exists(TRANSFORMER_MODEL_DIR):
+             models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
+             models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
+             models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
+             st.write("Transformer model and tokenizer loaded.")
+        else:
+             st.error(f"Transformer model directory not found at {TRANSFORMER_MODEL_DIR}.")
         return models
     except Exception as e:
         st.error(f"Error loading models: {e}")
@@ -309,7 +309,7 @@ if models:
             }
 
             nb_pred_pos = models['nb_pos_driven'].predict(pos_tfidf_features)[0]
-            nb_prob_pos = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0]
+            nb_prob_pos = models['nb_pos_driven'].predict_proba(nb_prob_pos)[0] # Corrected index
             results['POS-Driven + Naive Bayes'] = {
                 'prediction': nb_pred_pos,
                 'confidence': max(nb_prob_pos)
@@ -395,4 +395,4 @@ if models:
             st.warning("Please enter a movie review to analyze.")
 
 else:
-    st.error("Models could not be loaded. Please check the saved models directory.")
+    st.error("Models could not be loaded. Please ensure models are saved and accessible.")
