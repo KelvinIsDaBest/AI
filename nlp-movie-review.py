@@ -295,7 +295,7 @@ def load_models_and_data():
              models['compound_list'] = [] # Placeholder
 
         # Load the comparison DataFrame
-        data['comparison_df'] = load_comparison_data('comparison_df.pkl')
+        data['comparison_df'] = load_comparison_data('comparison_df.joblib')
 
 
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
