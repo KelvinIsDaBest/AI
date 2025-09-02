@@ -295,7 +295,7 @@ def load_models_and_data():
              models['compound_list'] = [] # Placeholder
 
         # Load the comparison DataFrame
-        data['comparison_df'] = load_comparison_data('comparison_df.joblib')
+        data['comparison_df'] = load_comparison_data('comparison_df.pkl')
 
 
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
@@ -659,3 +659,4 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
