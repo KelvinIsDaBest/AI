@@ -295,7 +295,7 @@ def load_models_and_data():
              models['compound_list'] = [] # Placeholder
 
         # Load the comparison DataFrame
-        data['comparison_df'] = load_comparison_data('comparison_df.joblib')
+        data['comparison_df'] = load('comparison_df.joblib')
 
 
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
@@ -334,17 +334,8 @@ def load_models_and_data():
 
 # Load the comparison DataFrame
 @st.cache_resource # Cache the DataFrame
-def load_comparison_data(file_path):
-    try:
-        comparison_df = pd.read_pickle(file_path)
-        st.write("Comparison data loaded.")
-        return comparison_df
-    except FileNotFoundError:
-        st.error(f"Comparison data file not found at {file_path}. The comparison graph will not be displayed.")
-        return None
-    except Exception as e:
-        st.error(f"Error loading comparison data: {e}")
-        return None
+comparison_df = pd.read_pickle('comparison_df.joblib')
+comparison_df.to_pickle('comparison_df.joblib')
 
 
 models, data = load_models_and_data() # Call the combined loading function
