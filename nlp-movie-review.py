@@ -333,10 +333,10 @@ def load_models_and_data():
         return None, None
 
 # Load the comparison DataFrame
-@st.cache_resource # Cache the DataFrame
+@st.cache_resource
 def load_comparison_data(file_path):
     try:
-        comparison_df = pd.read_pickle('comparison_df.joblib')
+        comparison_df = pd.read_pickle(file_path)
         st.write("Comparison data loaded.")
         return comparison_df
     except FileNotFoundError:
