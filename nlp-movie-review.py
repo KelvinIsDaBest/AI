@@ -301,7 +301,7 @@ def load_models_and_data():
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
         # You need to save these files in your notebook after evaluation
         try:
-            data['y_test_std'] = load('y_test_for_std_tfidf_baseline.joblib')
+            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
             data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
             data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
             data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
@@ -333,7 +333,7 @@ def load_models_and_data():
         return None, None
 
 # Load the comparison DataFrame
-@st.cache_data
+@st.cache_resource # Cache the DataFrame
 def load_comparison_data(file_path):
     try:
         comparison_df = pd.read_pickle(file_path)
@@ -659,4 +659,3 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
-
