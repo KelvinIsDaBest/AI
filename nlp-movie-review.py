@@ -333,7 +333,7 @@ def load_models_and_data():
         return None, None
 
 # Load the comparison DataFrame
-@st.cache_resource
+@st.cache_data
 def load_comparison_data(file_path):
     try:
         comparison_df = pd.read_pickle(file_path)
