@@ -301,7 +301,7 @@ def load_models_and_data():
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
         # You need to save these files in your notebook after evaluation
         try:
-            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['y_test_std'] = load('y_test_for_std_tfidf_baseline.joblib')
             data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
             data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
             data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
@@ -354,7 +354,7 @@ if models:
     st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
     st.set_page_config(layout="wide") # Set layout to wide
 
-# Model Performance Comparison plot 
+# Model Performance Comparison plot
     st.subheader("Model Performance Comparison")
     if data and 'comparison_df' in data and data['comparison_df'] is not None:
         metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
