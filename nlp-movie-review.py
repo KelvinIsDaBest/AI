@@ -30,7 +30,6 @@ def download_nltk_data():
         nltk.download('averaged_perceptron_tagger_eng', quiet=True) # Corrected resource name
         nltk.download('wordnet', quiet=True)
         nltk.download('omw-1.4', quiet=True)
-        st.success("NLTK data downloaded successfully!")
     except Exception as e:
         st.error(f"Error downloading NLTK data: {e}")
 
@@ -261,7 +260,7 @@ def load_models_and_data():
                  models['transformer_tokenizer'] = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['transformer_model'] = AutoModelForSequenceClassification.from_pretrained(TRANSFORMER_MODEL_DIR)
                  models['sentiment_pipeline'] = pipeline("sentiment-analysis", model=models['transformer_model'], tokenizer=models['transformer_tokenizer'])
-                 st.write("Transformer model and tokenizer loaded.")
+                 #st.write("Transformer model and tokenizer loaded.")
              except Exception as e:
                  st.error(f"Error loading Transformer model and tokenizer: {e}")
                  # Handle case where transformer model loading fails
@@ -275,7 +274,7 @@ def load_models_and_data():
         models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
         models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
         models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
-        st.write("Standard TF-IDF models loaded.")
+        #st.write("Standard TF-IDF models loaded.")
 
 
         # Load POS-Driven models from the root directory
@@ -283,13 +282,13 @@ def load_models_and_data():
         models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
         models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
         models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
-        st.write("POS-Driven models loaded.")
+        #st.write("POS-Driven models loaded.")
 
 
         # Load compound_list from the root directory
         try:
             models['compound_list'] = load('compound_list.joblib')
-            st.write("Compound list loaded.")
+            #st.write("Compound list loaded.")
         except FileNotFoundError:
              st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
              models['compound_list'] = [] # Placeholder
@@ -301,7 +300,7 @@ def load_models_and_data():
         # Load true and predicted labels for Confusion Matrices (Assuming they are saved)
         # You need to save these files in your notebook after evaluation
         try:
-            data['y_test_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
+            data['y_test_std'] = load('y_test_for_std_tfidf_baseline.joblib')
             data['lr_pred_std'] = load('lr_predictions_for_std_tfidf_baseline.joblib')
             data['nb_pred_std'] = load('nb_predictions_for_std_tfidf_baseline.joblib')
             data['svm_pred_std'] = load('svm_predictions_for_std_tfidf_baseline.joblib')
@@ -315,7 +314,7 @@ def load_models_and_data():
             label_map_transformer_to_str = {0: 'negative', 1: 'positive'}
             data['true_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_true_labels]
             data['predicted_labels_transformer_str'] = [label_map_transformer_to_str.get(label, 'unknown') for label in transformer_predicted_labels]
-            st.write("True and predicted labels loaded for Confusion Matrices.")
+            #st.write("True and predicted labels loaded for Confusion Matrices.")
 
         except FileNotFoundError as e:
              st.warning(f"Confusion Matrix data file not found: {e}. Confusion Matrices will not be displayed.")
@@ -337,7 +336,7 @@ def load_models_and_data():
 def load_comparison_data(file_path):
     try:
         comparison_df = pd.read_pickle(file_path)
-        st.write("Comparison data loaded.")
+        #st.write("Comparison data loaded.")
         return comparison_df
     except FileNotFoundError:
         st.error(f"Comparison data file not found at {file_path}. The comparison graph will not be displayed.")
