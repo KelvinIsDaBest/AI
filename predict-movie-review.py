@@ -677,3 +677,112 @@ def main():
                          try:
                              label_id = int(label_str)
                              sentiment_label = label_map.get(label_id, "unknown")
+                             results['Transformer'] = {
+                                 'prediction': sentiment_label,
+                                 'confidence': transformer_result['score']
+                             }
+                         except ValueError:
+                             st.warning(f"Could not parse transformer label ID: {label_str}")
+                             results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
+                    else:
+                         results['Transformer'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
+                except Exception as e:
+                     st.error(f"Error with Transformer prediction: {e}")
+                     results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
+
+            # Display Results
+            st.markdown("---")
+            st.markdown("## 📊 Analysis Results")
+            
+            # Create visualization
+            create_results_visualization(results)
+            
+            # Individual Model Results
+            st.markdown("### 🤖 Individual Model Predictions")
+            
+            # Group results by model type
+            standard_models = {k: v for k, v in results.items() if 'Standard TF-IDF' in k}
+            pos_models = {k: v for k, v in results.items() if 'POS-Driven' in k}
+            transformer_models = {k: v for k, v in results.items() if 'Transformer' in k}
+            
+            # Display in organized sections
+            if standard_models:
+                st.markdown("#### 📊 Standard TF-IDF Models")
+                for model_name, result in standard_models.items():
+                    render_model_result(model_name, result, "Traditional NLP approach")
+            
+            if pos_models:
+                st.markdown("#### 🎯 POS-Driven Models")
+                for model_name, result in pos_models.items():
+                    render_model_result(model_name, result, "Linguistics-enhanced approach")
+            
+            if transformer_models:
+                st.markdown("#### 🤖 Transformer Model")
+                for model_name, result in transformer_models.items():
+                    render_model_result(model_name, result, "State-of-the-art neural approach")
+
+            # Overall Summary
+            positive_count = sum(1 for result in results.values() if result['prediction'].lower() == 'positive')
+            negative_count = sum(1 for result in results.values() if result['prediction'].lower() == 'negative')
+            total_predictions = positive_count + negative_count
+
+            if total_predictions > 0:
+                positive_percentage = (positive_count / total_predictions) * 100
+                negative_percentage = (negative_count / total_predictions) * 100
+                
+                # Determine overall sentiment
+                if positive_count > negative_count:
+                    overall_sentiment = "POSITIVE"
+                    overall_color = "#10b981"
+                    overall_icon = "😊"
+                elif negative_count > positive_count:
+                    overall_sentiment = "NEGATIVE"
+                    overall_color = "#ef4444"
+                    overall_icon = "😞"
+                else:
+                    overall_sentiment = "MIXED"
+                    overall_color = "#f59e0b"
+                    overall_icon = "😐"
+                
+                # Summary card
+                st.markdown(f"""
+                <div class="summary-card" style="border-left: 5px solid {overall_color};">
+                    <h2 style="color: {overall_color}; margin-bottom: 1rem;">
+                        {overall_icon} Overall Sentiment: {overall_sentiment}
+                    </h2>
+                    <div class="metric-container">
+                        <div class="metric-box" style="border-left: 3px solid #10b981;">
+                            <h3 style="color: #10b981; margin: 0;">{positive_count}</h3>
+                            <p style="margin: 0; color: #666;">Positive</p>
+                            <small style="color: #999;">{positive_percentage:.1f}%</small>
+                        </div>
+                        <div class="metric-box" style="border-left: 3px solid #ef4444;">
+                            <h3 style="color: #ef4444; margin: 0;">{negative_count}</h3>
+                            <p style="margin: 0; color: #666;">Negative</p>
+                            <small style="color: #999;">{negative_percentage:.1f}%</small>
+                        </div>
+                        <div class="metric-box" style="border-left: 3px solid #6366f1;">
+                            <h3 style="color: #6366f1; margin: 0;">{total_predictions}</h3>
+                            <p style="margin: 0; color: #666;">Total Models</p>
+                            <small style="color: #999;">Analyzed</small>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        else:
+            st.warning("⚠️ Please enter a movie review to analyze.")
+
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem; color: #666; background: rgba(255, 255, 255, 0.8); border-radius: 10px; margin-top: 2rem;">
+        <h4>🎬 Movie Sentiment Analyzer</h4>
+        <p>Powered by Advanced Machine Learning Models | TF-IDF • POS-Driven • Transformers</p>
+        <small>Built with Streamlit, scikit-learn, and Transformers</small>
+    </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
