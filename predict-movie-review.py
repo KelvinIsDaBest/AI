@@ -514,16 +514,6 @@ if models:
             else:
                 overall = "MIXED (TIE)"
                 st.markdown(f"Overall sentiment: **{overall}**", unsafe_allow_html=True)
-                
-            # Add interpretation help for short inputs
-            if show_warning:
-                st.markdown("---")
-                st.info("""
-                **Interpreting Results for Short Inputs:**
-                - Results may be less reliable due to limited context
-                - Consider the prediction as a general tendency rather than definitive
-                - For better accuracy, try: "I think this movie is [your word]"
-                """)
 
         else:
             st.warning("Please enter a movie review to analyze.")
