@@ -51,8 +51,7 @@ def extract_transformer_model(zip_path, extract_dir):
     else:
         pass
 
-
-# ADD THESE NEW FUNCTIONS FOR WORD COUNTING AND WARNINGS
+# ADD WORD COUNTING FUNCTION FOR RELIABILITY INDICATORS
 def count_meaningful_words(text):
     """
     Count meaningful words (excluding stopwords, punctuation, etc.)
@@ -70,15 +69,8 @@ def count_meaningful_words(text):
     
     return len(meaningful_words)
 
-def should_show_warning(text, min_words=3):
-    """
-    Determine if we should show a warning about prediction reliability
-    """
-    word_count = count_meaningful_words(text)
-    return word_count < min_words, word_count
 
-
-# ALL METHODS (unchanged)
+# ALL METHODS
 def handle_negations(tokens):
     negation_words = {'not', 'no', 'never', 'nothing', 'nowhere', 'nobody', 'none',
                      'neither', 'nor', 'cannot', 'cant', 'couldnt', 'shouldnt',
@@ -258,7 +250,8 @@ def preprocess_review_pos_driven_improved(review_text, compound_list):
     return ' '.join(cleaned_review_with_compounds_without_stopword)
 
 
-# LOAD MODELS (unchanged)
+# LOAD MODELS
+
 @st.cache_resource
 def load_models_and_data():
     models = {}
@@ -321,57 +314,34 @@ if models:
     st.title("Large-Scale Movie Reviews Sentiment Analysis Through TF-IDF, POS-Driven Phrase-Level Feature Engineering and Transformer")
     st.set_page_config(layout="wide")
 
-    # ADD SIDEBAR WITH INPUT GUIDELINES
-    st.sidebar.markdown("""
-    ### Input Guidelines:
-    - **Best:** Complete sentences (5+ words)
-    - **Good:** Short phrases (3-4 words)  
-    - **Risky:** Single words (may be inaccurate)
-
-    ### Example Inputs:
-    - "This movie was absolutely amazing!"
-    - "The plot was confusing"
-    - "good movie" (warning shown)
-    - "good" (single word - warning shown)
-    """)
-
-    # Predict Review
+# Predict Review
     st.subheader("Predict Movie Review")
 
     user_input = st.text_area("Enter your movie review here:", height=200)
 
-    # MODIFIED BUTTON SECTION WITH WORD THRESHOLD AND WARNINGS
     if st.button("Analyze Sentiment"):
         if user_input:
-            # Check word count and show warning if needed
-            show_warning, word_count = should_show_warning(user_input.strip())
-            
-            if show_warning:
-                st.warning(f"Limited Input Detected ({word_count} meaningful words)")
-                st.info("""
-                **Note:** Single words or very short phrases may produce less accurate results because:
-                - Sentiment models work better with context
-                - Training data contains full sentences
-                - Word meaning can change based on context
-                
-                **Tip:** Try using complete sentences like "This movie is good" for better accuracy.
-                """)
-                
-                # Ask user if they want to continue
-                if not st.checkbox("Continue with analysis anyway"):
-                    st.stop()
+            # Count meaningful words for reliability indicator
+            word_count = count_meaningful_words(user_input.strip())
             
             st.subheader("Analysis Results:")
             
-            # Add word count info
+            # Add reliability indicator
             if word_count >= 5:
-                st.success(f"Good input length ({word_count} meaningful words)")
+                reliability_icon = "🟢"
+                reliability_text = "High"
+                st.success(f"Input quality: {reliability_icon} {reliability_text} ({word_count} meaningful words)")
             elif word_count >= 3:
-                st.info(f"Moderate input length ({word_count} meaningful words)")
+                reliability_icon = "🟡"
+                reliability_text = "Medium"
+                st.info(f"Input quality: {reliability_icon} {reliability_text} ({word_count} meaningful words)")
+            else:
+                reliability_icon = "🔴"
+                reliability_text = "Low"
+                st.warning(f"Input quality: {reliability_icon} {reliability_text} ({word_count} meaningful words) - Results may be less accurate")
 
             results = {}
 
-            # REST OF THE PREDICTION CODE (unchanged)
             if all(model_name in models for model_name in ['lr_std_tfidf', 'nb_std_tfidf', 'svm_std_tfidf', 'tfidf_vectorizer_std']):
                 try:
                     processed_std = preprocess_review_standard_improved(user_input)
@@ -469,14 +439,11 @@ if models:
                  st.error(f"Error with Transformer prediction: {e}")
                  results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
 
-            # ENHANCED RESULTS DISPLAY
+
+
+            # Display results with reliability context
             st.write("---")
             st.subheader("Individual Model Predictions:")
-            
-            # Add reliability indicator
-            reliability_icon = "🟢" if word_count >= 5 else "🟡" if word_count >= 3 else "🔴"
-            reliability_text = "High" if word_count >= 5 else "Medium" if word_count >= 3 else "Low"
-            st.markdown(f"{reliability_icon} **Prediction Reliability:** {reliability_text}")
             
             for model_name, result in results.items():
                 sentiment = result['prediction'].upper()
@@ -514,6 +481,7 @@ if models:
             else:
                 overall = "MIXED (TIE)"
                 st.markdown(f"Overall sentiment: **{overall}**", unsafe_allow_html=True)
+
 
         else:
             st.warning("Please enter a movie review to analyze.")
