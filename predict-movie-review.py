@@ -256,6 +256,31 @@ def load_models_and_data():
              st.warning(f"Transformer model directory not found or is empty at {TRANSFORMER_MODEL_DIR}. Transformer model will not be available.")
              # Handle case where transformer model is not available
 
+
+        # Load Standard TF-IDF models from the root directory
+        models['lr_std_tfidf'] = load('logistic_regression_model_for_std_tfidf_baseline.joblib')
+        models['nb_std_tfidf'] = load('naive_bayes_model_for_std_tfidf_baseline.joblib')
+        models['svm_std_tfidf'] = load('svm_model_for_std_tfidf_baseline.joblib')
+        models['tfidf_vectorizer_std'] = load('tfidf_vectorizer_for_std_tfidf_baseline.joblib')
+        #st.write("Standard TF-IDF models loaded.")
+
+
+        # Load POS-Driven models from the root directory
+        models['lr_pos_driven'] = load('logistic_regression_model_for_pos_driven.joblib')
+        models['nb_pos_driven'] = load('naive_bayes_model_for_pos_driven.joblib')
+        models['svm_pos_driven'] = load('svm_model_for_pos_driven.joblib')
+        models['tfidf_vectorizer_pos'] = load('tfidf_vectorizer_for_pos_driven.joblib')
+        #st.write("POS-Driven models loaded.")
+
+
+        # Load compound_list from the root directory
+        try:
+            models['compound_list'] = load('compound_list.joblib')
+            #st.write("Compound list loaded.")
+        except FileNotFoundError:
+             st.warning(f"Compound list not found at 'compound_list.joblib'. POS-Driven models might not work correctly.")
+             models['compound_list'] = [] # Placeholder
+
         return models, data
     except FileNotFoundError as e:
         st.error(f"Error loading a model file: {e}. Please ensure all model files are at the repository root or in the specified directories.")
