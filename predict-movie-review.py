@@ -59,73 +59,31 @@ def count_meaningful_words(text):
     # Basic cleaning
     text = re.sub(r'[^\w\s]', ' ', text.lower())
     tokens = word_tokenize(text)
-    
+
     # Remove stopwords and short words
     stop_words = set(stopwords.words('english'))
-    meaningful_words = [word for word in tokens 
-                       if word not in stop_words 
-                       and len(word) > 2 
+    meaningful_words = [word for word in tokens
+                       if word not in stop_words
+                       and len(word) > 2
                        and word.isalpha()]
-    
+
     return len(meaningful_words)
 
 
 # ALL METHODS
-def handle_negations(tokens):
-    negation_words = {'not', 'no', 'never', 'nothing', 'nowhere', 'nobody', 'none',
-                     'neither', 'nor', 'cannot', 'cant', 'couldnt', 'shouldnt',
-                     'wouldnt', 'dont', 'doesnt', 'didnt', 'isnt', 'arent', 'wasnt', 'werent'}
-
-    negated_negatives = {
-        'not_bad': 'good',
-        'not_terrible': 'decent',
-        'not_awful': 'okay',
-        'not_horrible': 'acceptable',
-        'not_worst': 'better',
-        'not_disappointing': 'satisfying',
-        'not_boring': 'engaging',
-        'not_poor': 'decent',
-        'not_weak': 'strong',
-        'not_fail': 'succeed'
-    }
-
-    result = []
-    i = 0
-
-    while i < len(tokens):
-        if tokens[i].lower() in negation_words and i + 1 < len(tokens):
-            next_word = tokens[i + 1].lower()
-            negation_phrase = f"{tokens[i].lower()}_{next_word}"
-
-            if negation_phrase in negated_negatives:
-                result.append(negated_negatives[negation_phrase])
-                i += 2
-            else:
-                result.append(f"NOT_{next_word.upper()}")
-                i += 2
-        else:
-            result.append(tokens[i])
-            i += 1
-
-    return result
-
 def preprocess_review_standard_improved(review_text):
     text_without_br = re.sub(r'<br\s*/>', ' ', review_text)
     text_expanded_contractions = contractions.fix(text_without_br)
     lowercased_review = text_expanded_contractions.lower()
     tokenized_review = word_tokenize(lowercased_review)
-    tokens_with_negations = handle_negations(tokenized_review)
 
     cleaned_tokens = []
-    for word in tokens_with_negations:
-        if word.startswith('NOT_') or word in ['good', 'decent', 'okay', 'acceptable', 'better', 'satisfying', 'engaging', 'strong', 'succeed']:
-            cleaned_tokens.append(word)
-        else:
-            word = re.sub(r'\d+', '', word)
-            word = re.sub(r'[^\w\s]', '', word)
-            word = re.sub(r'^s$', '', word)
-            if word and word.strip():
-                cleaned_tokens.append(word.strip())
+    for word in tokenized_review:
+        word = re.sub(r'\d+', '', word)
+        word = re.sub(r'[^\w\s]', '', word)
+        word = re.sub(r'^s$', '', word)
+        if word and word.strip():
+            cleaned_tokens.append(word.strip())
 
     stop_words = set(stopwords.words('english'))
     sentiment_stopwords = {'very', 'really', 'quite', 'rather', 'too', 'so', 'not', 'no', 'never'}
@@ -133,7 +91,7 @@ def preprocess_review_standard_improved(review_text):
 
     cleaned_review_without_stopword = []
     for word in cleaned_tokens:
-        if word.startswith('NOT_') or word.lower() not in filtered_stopwords:
+        if word.lower() not in filtered_stopwords:
             cleaned_review_without_stopword.append(word)
 
     return ' '.join(cleaned_review_without_stopword)
@@ -178,73 +136,41 @@ def preprocess_review_pos_driven_improved(review_text, compound_list):
     text_expanded_contractions = contractions.fix(text_without_br)
     lowercased_review = text_expanded_contractions.lower()
     tokenized_review = word_tokenize(lowercased_review)
-    tokens_with_negations = handle_negations(tokenized_review)
 
     cleaned_tokens = []
-    for word in tokens_with_negations:
-        if word.startswith('NOT_') or word in ['good', 'decent', 'okay', 'acceptable', 'better', 'satisfying', 'engaging', 'strong', 'succeed']:
-            cleaned_tokens.append(word)
-        else:
-            word = re.sub(r'\d+', '', word)
-            word = re.sub(r'[^\w\s]', '', word)
-            word = re.sub(r'^s$', '', word)
-            if word and word.strip():
-                cleaned_tokens.append(word.strip())
+    for word in tokenized_review:
+        word = re.sub(r'\d+', '', word)
+        word = re.sub(r'[^\w\s]', '', word)
+        word = re.sub(r'^s$', '', word)
+        if word and word.strip():
+            cleaned_tokens.append(word.strip())
 
-    pos_tokens = []
-    for word in cleaned_tokens:
-        if word.startswith('NOT_'):
-            pos_tokens.append((word, 'NEG'))
-        else:
-            pos_tokens.append((word, 'NN'))
+    # POS Tagging
+    pos_tagged_review = pos_tag(cleaned_tokens)
 
-    regular_words = [word for word in cleaned_tokens if not word.startswith('NOT_')]
-    if regular_words:
-        pos_tagged = pos_tag(regular_words)
-
-        pos_tagged_review = []
-        reg_idx = 0
-        for word in cleaned_tokens:
-            if word.startswith('NOT_'):
-                pos_tagged_review.append((word, 'NEG'))
-            else:
-                if reg_idx < len(pos_tagged):
-                    pos_tagged_review.append(pos_tagged[reg_idx])
-                    reg_idx += 1
-                else:
-                    pos_tagged_review.append((word, 'NN'))
-    else:
-        pos_tagged_review = pos_tokens
-
+    # Lemmatize
     lemmatizer = WordNetLemmatizer()
     sentiment_preserve = {'best', 'worst', 'better', 'worse', 'amazing', 'terrible', 'awful', 'excellent',
                          'good', 'decent', 'okay', 'acceptable', 'satisfying', 'engaging', 'strong', 'succeed'}
 
     cleaned_review_pos = []
     for word, tag in pos_tagged_review:
-        if word.startswith('NOT_') or word.lower() in sentiment_preserve or tag.startswith('JJ') or tag.startswith('RB'):
+        if word.lower() in sentiment_preserve or tag.startswith('JJ') or tag.startswith('RB'):
             cleaned_review_pos.append(word.lower())
-        elif tag != 'NEG':
-            cleaned_review_pos.append(lemmatizer.lemmatize(word, get_wordnet_pos(tag)))
         else:
-            cleaned_review_pos.append(word)
+            cleaned_review_pos.append(lemmatizer.lemmatize(word, get_wordnet_pos(tag)))
 
-    regular_tokens = [token for token in cleaned_review_pos if not token.startswith('NOT_')]
-    negation_tokens = [token for token in cleaned_review_pos if token.startswith('NOT_')]
+    # Extract compound terms
+    cleaned_review_with_compounds = extract_compound_terms(cleaned_review_pos, compound_list)
 
-    if regular_tokens:
-        compounds_extracted = extract_compound_terms(regular_tokens, compound_list)
-        cleaned_review_with_compounds = negation_tokens + compounds_extracted
-    else:
-        cleaned_review_with_compounds = negation_tokens
-
+    # Stopword removal
     stop_words = set(stopwords.words('english'))
     sentiment_stopwords = {'very', 'really', 'quite', 'rather', 'too', 'so', 'not', 'no', 'never'}
     filtered_stopwords = stop_words - sentiment_stopwords
 
     cleaned_review_with_compounds_without_stopword = []
     for word in cleaned_review_with_compounds:
-        if word.startswith('NOT_') or word.lower() not in filtered_stopwords:
+        if word.lower() not in filtered_stopwords:
             cleaned_review_with_compounds_without_stopword.append(word)
 
     return ' '.join(cleaned_review_with_compounds_without_stopword)
@@ -323,9 +249,9 @@ if models:
         if user_input:
             # Count meaningful words for reliability indicator
             word_count = count_meaningful_words(user_input.strip())
-            
+
             st.subheader("Analysis Results:")
-            
+
             # Add reliability indicator
             if word_count >= 5:
                 reliability_icon = "🟢"
@@ -444,7 +370,7 @@ if models:
             # Display results with reliability context
             st.write("---")
             st.subheader("Individual Model Predictions:")
-            
+
             for model_name, result in results.items():
                 sentiment = result['prediction'].upper()
                 confidence = result['confidence']
