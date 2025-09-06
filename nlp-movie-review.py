@@ -56,36 +56,27 @@ def calculate_average_metrics(comparison_df):
     if comparison_df is None or comparison_df.empty:
         return None
     
-    # Define approach groups
-    standard_tfidf_models = ['LR (Standard TF-IDF)', 'Naive Bayes (Standard TF-IDF)', 'SVM (Standard TF-IDF)']
-    pos_driven_models = ['LR (POS-Driven)', 'Naive Bayes (POS-Driven)', 'SVM (POS-Driven)']
-    transformer_models = ['Transformer']
-    
-    metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
-    
-    # Calculate averages
-    averages = {}
-    
-    # Standard TF-IDF average
-    std_data = comparison_df[comparison_df['Model'].isin(standard_tfidf_models)]
-    if not std_data.empty:
-        averages['Standard TF-IDF'] = std_data[metrics].mean()
-    
-    # POS-Driven average
-    pos_data = comparison_df[comparison_df['Model'].isin(pos_driven_models)]
-    if not pos_data.empty:
-        averages['POS-Driven'] = pos_data[metrics].mean()
-    
-    # Transformer (single model)
-    trans_data = comparison_df[comparison_df['Model'].isin(transformer_models)]
-    if not trans_data.empty:
-        averages['Transformer'] = trans_data[metrics].iloc[0]
-    
-    # Create DataFrame
-    if averages:
-        average_df = pd.DataFrame(averages).T
-        return average_df
-    else:
+    try:
+        # Create a copy to avoid modifying the original dataframe
+        df_copy = comparison_df.copy()
+        
+        # Create Approach column based on Model names
+        df_copy['Approach'] = df_copy['Model'].apply(
+            lambda x: 'Standard TF-IDF' if 'Standard TF-IDF' in x else (
+                'POS-Driven' if 'POS-Driven' in x else 'Transformer'
+            )
+        )
+        
+        # Define metrics to average
+        metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
+        
+        # Calculate mean metrics grouped by approach
+        average_metrics = df_copy.groupby('Approach')[metrics].mean()
+        
+        return average_metrics
+        
+    except Exception as e:
+        st.error(f"Error calculating average metrics: {e}")
         return None
 
 def get_best_performing_approach(average_metrics_df):
@@ -378,11 +369,41 @@ if models:
             plt.tight_layout()
             st.pyplot(fig_avg)
             
+            # NEW: Best performing approach analysis
+            st.subheader("Performance Analysis")
             
             best_approach, best_f1_score = get_best_performing_approach(average_metrics)
             
             if best_approach and best_f1_score:
                 st.success(f"🏆 **Best Performing Approach: {best_approach}**")
+                st.write(f"**F1-Score: {best_f1_score:.4f}**")
+                
+                # Display detailed comparison
+                st.write("**Detailed Performance Comparison:**")
+                
+                comparison_text = ""
+                for approach in average_metrics.index:
+                    f1_score = average_metrics.loc[approach, 'F1-score']
+                    accuracy = average_metrics.loc[approach, 'Accuracy']
+                    precision = average_metrics.loc[approach, 'Precision']
+                    recall = average_metrics.loc[approach, 'Recall']
+                    
+                    if approach == best_approach:
+                        comparison_text += f"🥇 **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
+                    else:
+                        comparison_text += f"• **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
+                
+                st.markdown(comparison_text)
+                
+                # Performance insights
+                st.write("**Key Insights:**")
+                
+                if best_approach == "Transformer":
+                    st.info("🤖 The Transformer model shows superior performance, leveraging deep contextual understanding and pre-trained language representations.")
+                elif best_approach == "POS-Driven":
+                    st.info("📝 The POS-Driven approach excels by preserving sentiment-bearing words and utilizing linguistic features for better feature engineering.")
+                elif best_approach == "Standard TF-IDF":
+                    st.info("📊 The Standard TF-IDF approach provides solid baseline performance with traditional bag-of-words representation.")
             
         else:
             st.warning("Could not calculate average metrics for approaches.")
@@ -394,6 +415,37 @@ if models:
 
 # Confusion Matrices
     st.subheader("Confusion Matrices")
+    
+    # NEW: Confusion Matrix Explanation
+    with st.expander("📊 Understanding Confusion Matrices", expanded=False):
+        st.markdown("""
+        ### What is a Confusion Matrix?
+        
+        A **confusion matrix** is a table used to evaluate the performance of a classification model. For binary sentiment analysis (positive/negative), it's a 2×2 table that shows:
+        
+        ```
+                    Predicted
+                 Negative  Positive
+        Actual Negative   TN      FP
+               Positive   FN      TP
+        ```
+        
+        **Key Components:**
+        - **True Negative (TN)**: Correctly predicted negative reviews
+        - **False Positive (FP)**: Incorrectly predicted as positive (actually negative)
+        - **False Negative (FN)**: Incorrectly predicted as negative (actually positive)  
+        - **True Positive (TP)**: Correctly predicted positive reviews
+        
+        **What to Look For:**
+        - **Diagonal values (TN, TP)**: Higher values = better performance
+        - **Off-diagonal values (FP, FN)**: Lower values = fewer mistakes
+        - **Color intensity**: Darker colors typically indicate higher counts
+        
+        **Performance Implications:**
+        - **High FP**: Model is too optimistic (sees positive when it's negative)
+        - **High FN**: Model is too pessimistic (sees negative when it's positive)
+        - **Balanced diagonal**: Model performs well on both positive and negative reviews
+        """)
 
     classes = ['negative', 'positive']
 
