@@ -591,4 +591,117 @@ if models:
                      results['Standard TF-IDF + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
 
             else:
-                 st.warning("Standard TF-IDF models were not loaded successfully. Skipping
+                 st.warning("Standard TF-IDF models were not loaded successfully. Skipping predictions for these models.")
+                 results['Standard TF-IDF + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['Standard TF-IDF + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['Standard TF-IDF + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
+            if all(model_name in models for model_name in ['lr_pos_driven', 'nb_pos_driven', 'svm_pos_driven', 'tfidf_vectorizer_pos']) and 'compound_list' in models:
+                try:
+                    compound_list = models.get('compound_list', [])
+                    processed_pos = preprocess_review_pos_driven_improved(user_input, compound_list)
+                    pos_tfidf_features = models['tfidf_vectorizer_pos'].transform([processed_pos])
+
+                    lr_pred_pos = models['lr_pos_driven'].predict(pos_tfidf_features)[0]
+                    lr_prob_pos = models['lr_pos_driven'].predict_proba(pos_tfidf_features)[0]
+                    results['POS-Driven + Logistic Regression'] = {
+                        'prediction': lr_pred_pos,
+                        'confidence': max(lr_prob_pos)
+                    }
+
+                    nb_pred_pos = models['nb_pos_driven'].predict(pos_tfidf_features)[0]
+                    nb_prob_pos = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0] # Corrected typo here
+                    results['POS-Driven + Naive Bayes'] = {
+                        'prediction': nb_pred_pos,
+                        'confidence': max(nb_prob_pos)
+                    }
+
+                    svm_pred_pos = models['svm_pos_driven'].predict(pos_tfidf_features)[0]
+                    svm_decision_pos = models['svm_pos_driven'].decision_function(pos_tfidf_features)[0]
+                    results['POS-Driven + SVM'] = {
+                        'prediction': svm_pred_pos,
+                        'confidence': abs(svm_decision_pos)
+                    }
+                except Exception as e:
+                     st.error(f"Error during POS-Driven model prediction: {e}")
+                     results['POS-Driven + Logistic Regression'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['POS-Driven + Naive Bayes'] = {'prediction': 'Error', 'confidence': 0.0}
+                     results['POS-Driven + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
+
+            else:
+                 st.warning("POS-Driven models were not loaded successfully. Skipping predictions for these models.")
+                 results['POS-Driven + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['POS-Driven + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+                 results['POS-Driven + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
+            try:
+                if 'sentiment_pipeline' in models and models['sentiment_pipeline']:
+                     transformer_result = models['sentiment_pipeline'](user_input)[0]
+                     label_map = {0: "negative", 1: "positive"}
+                     label_str = transformer_result['label'].replace("LABEL_", "")
+                     try:
+                         label_id = int(label_str)
+                         sentiment_label = label_map.get(label_id, "unknown")
+                         results['Transformer'] = {
+                             'prediction': sentiment_label,
+                             'confidence': transformer_result['score']
+                         }
+                     except ValueError:
+                         st.warning(f"Could not parse transformer label ID: {label_str}")
+                         results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
+                else:
+                     results['Transformer'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
+
+            except Exception as e:
+                 st.error(f"Error with Transformer prediction: {e}")
+                 results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
+
+
+
+            # Display results with reliability context
+            st.write("---")
+            st.subheader("Individual Model Predictions:")
+
+            for model_name, result in results.items():
+                sentiment = result['prediction'].upper()
+                confidence = result['confidence']
+
+                if 'SVM' in model_name:
+                    conf_str = f"Decision Score: {confidence:.4f}"
+                elif model_name == 'Transformer':
+                    conf_str = f"Score: {confidence:.4f}"
+                else:
+                    conf_str = f"Confidence: {confidence:.4f}"
+
+                if sentiment == 'POSITIVE':
+                    st.markdown(f"✓ **{model_name}**: <span style='color:green'>**{sentiment}**</span> ({conf_str})", unsafe_allow_html=True)
+                elif sentiment == 'NEGATIVE':
+                    st.markdown(f"✗ **{model_name}**: <span style='color:red'>**{sentiment}**</span> ({conf_str})", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"  **{model_name}**: {sentiment} ({conf_str})", unsafe_allow_html=True)
+
+            positive_count = sum(1 for result in results.values() if result['prediction'].lower() == 'positive')
+            negative_count = sum(1 for result in results.values() if result['prediction'].lower() == 'negative')
+            total_predictions = positive_count + negative_count # Only count models that successfully predicted
+
+            st.write("---")
+            st.subheader("Overall Summary:")
+            st.write(f"Positive predictions: {positive_count}/{total_predictions}")
+            st.write(f"Negative predictions: {negative_count}/{total_predictions}")
+
+            if positive_count > negative_count:
+                overall = "POSITIVE"
+                st.markdown(f"Overall sentiment: <span style='color:green'>**{overall}**</span>", unsafe_allow_html=True)
+            elif negative_count > positive_count:
+                overall = "NEGATIVE"
+                st.markdown(f"Overall sentiment: <span style='color:red'>**{overall}**</span>", unsafe_allow_html=True)
+            else:
+                overall = "MIXED (TIE)"
+                st.markdown(f"Overall sentiment: **{overall}**", unsafe_allow_html=True)
+
+
+        else:
+            st.warning("Please enter a movie review to analyze.")
+
+else:
+    st.error("Models could not be loaded. Please ensure models are saved and accessible.")
