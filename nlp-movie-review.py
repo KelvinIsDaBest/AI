@@ -378,41 +378,8 @@ if models:
             plt.tight_layout()
             st.pyplot(fig_avg)
             
-            # NEW: Best performing approach analysis
-            st.subheader("Performance Analysis")
             
-            best_approach, best_f1_score = get_best_performing_approach(average_metrics)
-            
-            if best_approach and best_f1_score:
-                st.success(f"🏆 **Best Performing Approach: {best_approach}**")
-                st.write(f"**F1-Score: {best_f1_score:.4f}**")
-                
-                # Display detailed comparison
-                st.write("**Detailed Performance Comparison:**")
-                
-                comparison_text = ""
-                for approach in average_metrics.index:
-                    f1_score = average_metrics.loc[approach, 'F1-score']
-                    accuracy = average_metrics.loc[approach, 'Accuracy']
-                    precision = average_metrics.loc[approach, 'Precision']
-                    recall = average_metrics.loc[approach, 'Recall']
-                    
-                    if approach == best_approach:
-                        comparison_text += f"🥇 **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
-                    else:
-                        comparison_text += f"• **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
-                
-                st.markdown(comparison_text)
-                
-                # Performance insights
-                st.write("**Key Insights:**")
-                
-                if best_approach == "Transformer":
-                    st.info("🤖 The Transformer model shows superior performance, leveraging deep contextual understanding and pre-trained language representations.")
-                elif best_approach == "POS-Driven":
-                    st.info("📝 The POS-Driven approach excels by preserving sentiment-bearing words and utilizing linguistic features for better feature engineering.")
-                elif best_approach == "Standard TF-IDF":
-                    st.info("📊 The Standard TF-IDF approach provides solid baseline performance with traditional bag-of-words representation.")
+            best_approach = get_best_performing_approach(average_metrics)
             
         else:
             st.warning("Could not calculate average metrics for approaches.")
@@ -424,37 +391,6 @@ if models:
 
 # Confusion Matrices
     st.subheader("Confusion Matrices")
-    
-    # NEW: Confusion Matrix Explanation
-    with st.expander("📊 Understanding Confusion Matrices", expanded=False):
-        st.markdown("""
-        ### What is a Confusion Matrix?
-        
-        A **confusion matrix** is a table used to evaluate the performance of a classification model. For binary sentiment analysis (positive/negative), it's a 2×2 table that shows:
-        
-        ```
-                    Predicted
-                 Negative  Positive
-        Actual Negative   TN      FP
-               Positive   FN      TP
-        ```
-        
-        **Key Components:**
-        - **True Negative (TN)**: Correctly predicted negative reviews
-        - **False Positive (FP)**: Incorrectly predicted as positive (actually negative)
-        - **False Negative (FN)**: Incorrectly predicted as negative (actually positive)  
-        - **True Positive (TP)**: Correctly predicted positive reviews
-        
-        **What to Look For:**
-        - **Diagonal values (TN, TP)**: Higher values = better performance
-        - **Off-diagonal values (FP, FN)**: Lower values = fewer mistakes
-        - **Color intensity**: Darker colors typically indicate higher counts
-        
-        **Performance Implications:**
-        - **High FP**: Model is too optimistic (sees positive when it's negative)
-        - **High FN**: Model is too pessimistic (sees negative when it's positive)
-        - **Balanced diagonal**: Model performs well on both positive and negative reviews
-        """)
 
     classes = ['negative', 'positive']
 
