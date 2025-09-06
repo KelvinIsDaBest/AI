@@ -51,6 +51,52 @@ def extract_transformer_model(zip_path, extract_dir):
     else:
         pass
 
+def calculate_average_metrics(comparison_df):
+    """Calculate average metrics for each approach (Standard TF-IDF, POS-Driven, Transformer)"""
+    if comparison_df is None or comparison_df.empty:
+        return None
+    
+    # Define approach groups
+    standard_tfidf_models = ['LR (Standard TF-IDF)', 'Naive Bayes (Standard TF-IDF)', 'SVM (Standard TF-IDF)']
+    pos_driven_models = ['LR (POS-Driven)', 'Naive Bayes (POS-Driven)', 'SVM (POS-Driven)']
+    transformer_models = ['Transformer']
+    
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1-score']
+    
+    # Calculate averages
+    averages = {}
+    
+    # Standard TF-IDF average
+    std_data = comparison_df[comparison_df['Model'].isin(standard_tfidf_models)]
+    if not std_data.empty:
+        averages['Standard TF-IDF'] = std_data[metrics].mean()
+    
+    # POS-Driven average
+    pos_data = comparison_df[comparison_df['Model'].isin(pos_driven_models)]
+    if not pos_data.empty:
+        averages['POS-Driven'] = pos_data[metrics].mean()
+    
+    # Transformer (single model)
+    trans_data = comparison_df[comparison_df['Model'].isin(transformer_models)]
+    if not trans_data.empty:
+        averages['Transformer'] = trans_data[metrics].iloc[0]
+    
+    # Create DataFrame
+    if averages:
+        average_df = pd.DataFrame(averages).T
+        return average_df
+    else:
+        return None
+
+def get_best_performing_approach(average_metrics_df):
+    """Determine which approach performs best based on F1-score"""
+    if average_metrics_df is None or average_metrics_df.empty:
+        return None, None
+    
+    best_approach = average_metrics_df['F1-score'].idxmax()
+    best_f1_score = average_metrics_df['F1-score'].max()
+    
+    return best_approach, best_f1_score
 
 # ALL METHODS
 def count_meaningful_words(text):
@@ -289,6 +335,88 @@ if models:
 
         plt.tight_layout()
         st.pyplot(fig)
+        
+        # NEW: Average Model Performance per Approach
+        st.subheader("Average Model Performance per Approach")
+        
+        # Calculate average metrics
+        average_metrics = calculate_average_metrics(data['comparison_df'])
+        
+        if average_metrics is not None and not average_metrics.empty:
+            # Plot average performance
+            plot_df_average = average_metrics[metrics]
+            
+            fig_avg, ax_avg = plt.subplots(figsize=(12, 7))
+            bar_width = 0.15
+            x_avg = np.arange(len(plot_df_average.index))
+            
+            for i, metric in enumerate(metrics):
+                metric_values = plot_df_average[metric].values
+                bars = ax_avg.bar(x_avg + i * bar_width, metric_values, bar_width, label=metric)
+                
+                # Add value labels on top of bars
+                for bar in bars:
+                    height = bar.get_height()
+                    if pd.notna(height):
+                        ax_avg.annotate(f'{height:.4f}',
+                                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                                    xytext=(0, 3),
+                                    textcoords="offset points",
+                                    ha='center', va='bottom',
+                                    fontsize=9)
+            
+            ax_avg.set_ylabel('Score')
+            ax_avg.set_title('Average Model Performance per Approach')
+            ax_avg.set_xticks(x_avg + bar_width * (len(metrics) - 1) / 2)
+            ax_avg.set_xticklabels(plot_df_average.index)
+            ax_avg.legend()
+            
+            min_val_avg = plot_df_average.min().min() * 0.98 if not plot_df_average.empty else 0.0
+            max_val_avg = plot_df_average.max().max() * 1.02 if not plot_df_average.empty else 1.0
+            ax_avg.set_ylim(min_val_avg, max_val_avg)
+            
+            plt.tight_layout()
+            st.pyplot(fig_avg)
+            
+            # NEW: Best performing approach analysis
+            st.subheader("Performance Analysis")
+            
+            best_approach, best_f1_score = get_best_performing_approach(average_metrics)
+            
+            if best_approach and best_f1_score:
+                st.success(f"🏆 **Best Performing Approach: {best_approach}**")
+                st.write(f"**F1-Score: {best_f1_score:.4f}**")
+                
+                # Display detailed comparison
+                st.write("**Detailed Performance Comparison:**")
+                
+                comparison_text = ""
+                for approach in average_metrics.index:
+                    f1_score = average_metrics.loc[approach, 'F1-score']
+                    accuracy = average_metrics.loc[approach, 'Accuracy']
+                    precision = average_metrics.loc[approach, 'Precision']
+                    recall = average_metrics.loc[approach, 'Recall']
+                    
+                    if approach == best_approach:
+                        comparison_text += f"🥇 **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
+                    else:
+                        comparison_text += f"• **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
+                
+                st.markdown(comparison_text)
+                
+                # Performance insights
+                st.write("**Key Insights:**")
+                
+                if best_approach == "Transformer":
+                    st.info("🤖 The Transformer model shows superior performance, leveraging deep contextual understanding and pre-trained language representations.")
+                elif best_approach == "POS-Driven":
+                    st.info("📝 The POS-Driven approach excels by preserving sentiment-bearing words and utilizing linguistic features for better feature engineering.")
+                elif best_approach == "Standard TF-IDF":
+                    st.info("📊 The Standard TF-IDF approach provides solid baseline performance with traditional bag-of-words representation.")
+            
+        else:
+            st.warning("Could not calculate average metrics for approaches.")
+            
     else:
         st.warning("Comparison data not available to display the graph.")
 
@@ -296,7 +424,37 @@ if models:
 
 # Confusion Matrices
     st.subheader("Confusion Matrices")
-
+    
+    # NEW: Confusion Matrix Explanation
+    with st.expander("📊 Understanding Confusion Matrices", expanded=False):
+        st.markdown("""
+        ### What is a Confusion Matrix?
+        
+        A **confusion matrix** is a table used to evaluate the performance of a classification model. For binary sentiment analysis (positive/negative), it's a 2×2 table that shows:
+        
+        ```
+                    Predicted
+                 Negative  Positive
+        Actual Negative   TN      FP
+               Positive   FN      TP
+        ```
+        
+        **Key Components:**
+        - **True Negative (TN)**: Correctly predicted negative reviews
+        - **False Positive (FP)**: Incorrectly predicted as positive (actually negative)
+        - **False Negative (FN)**: Incorrectly predicted as negative (actually positive)  
+        - **True Positive (TP)**: Correctly predicted positive reviews
+        
+        **What to Look For:**
+        - **Diagonal values (TN, TP)**: Higher values = better performance
+        - **Off-diagonal values (FP, FN)**: Lower values = fewer mistakes
+        - **Color intensity**: Darker colors typically indicate higher counts
+        
+        **Performance Implications:**
+        - **High FP**: Model is too optimistic (sees positive when it's negative)
+        - **High FN**: Model is too pessimistic (sees negative when it's positive)
+        - **Balanced diagonal**: Model performs well on both positive and negative reviews
+        """)
 
     classes = ['negative', 'positive']
 
@@ -369,10 +527,8 @@ if models:
             ax_transformer.set_title('Transformer')
             st.pyplot(fig_transformer)
 
-
     else:
         st.warning("True and predicted labels not available to display Confusion Matrices. Please ensure the data files are saved and accessible.")
-
 
     st.write("---")
 # Predict Review
@@ -435,117 +591,4 @@ if models:
                      results['Standard TF-IDF + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
 
             else:
-                 st.warning("Standard TF-IDF models were not loaded successfully. Skipping predictions for these models.")
-                 results['Standard TF-IDF + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-                 results['Standard TF-IDF + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-                 results['Standard TF-IDF + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-
-            if all(model_name in models for model_name in ['lr_pos_driven', 'nb_pos_driven', 'svm_pos_driven', 'tfidf_vectorizer_pos']) and 'compound_list' in models:
-                try:
-                    compound_list = models.get('compound_list', [])
-                    processed_pos = preprocess_review_pos_driven_improved(user_input, compound_list)
-                    pos_tfidf_features = models['tfidf_vectorizer_pos'].transform([processed_pos])
-
-                    lr_pred_pos = models['lr_pos_driven'].predict(pos_tfidf_features)[0]
-                    lr_prob_pos = models['lr_pos_driven'].predict_proba(pos_tfidf_features)[0]
-                    results['POS-Driven + Logistic Regression'] = {
-                        'prediction': lr_pred_pos,
-                        'confidence': max(lr_prob_pos)
-                    }
-
-                    nb_pred_pos = models['nb_pos_driven'].predict(pos_tfidf_features)[0]
-                    nb_prob_pos = models['nb_pos_driven'].predict_proba(pos_tfidf_features)[0] # Corrected typo here
-                    results['POS-Driven + Naive Bayes'] = {
-                        'prediction': nb_pred_pos,
-                        'confidence': max(nb_prob_pos)
-                    }
-
-                    svm_pred_pos = models['svm_pos_driven'].predict(pos_tfidf_features)[0]
-                    svm_decision_pos = models['svm_pos_driven'].decision_function(pos_tfidf_features)[0]
-                    results['POS-Driven + SVM'] = {
-                        'prediction': svm_pred_pos,
-                        'confidence': abs(svm_decision_pos)
-                    }
-                except Exception as e:
-                     st.error(f"Error during POS-Driven model prediction: {e}")
-                     results['POS-Driven + Logistic Regression'] = {'prediction': 'Error', 'confidence': 0.0}
-                     results['POS-Driven + Naive Bayes'] = {'prediction': 'Error', 'confidence': 0.0}
-                     results['POS-Driven + SVM'] = {'prediction': 'Error', 'confidence': 0.0}
-
-            else:
-                 st.warning("POS-Driven models were not loaded successfully. Skipping predictions for these models.")
-                 results['POS-Driven + Logistic Regression'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-                 results['POS-Driven + Naive Bayes'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-                 results['POS-Driven + SVM'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-
-            try:
-                if 'sentiment_pipeline' in models and models['sentiment_pipeline']:
-                     transformer_result = models['sentiment_pipeline'](user_input)[0]
-                     label_map = {0: "negative", 1: "positive"}
-                     label_str = transformer_result['label'].replace("LABEL_", "")
-                     try:
-                         label_id = int(label_str)
-                         sentiment_label = label_map.get(label_id, "unknown")
-                         results['Transformer'] = {
-                             'prediction': sentiment_label,
-                             'confidence': transformer_result['score']
-                         }
-                     except ValueError:
-                         st.warning(f"Could not parse transformer label ID: {label_str}")
-                         results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
-                else:
-                     results['Transformer'] = {'prediction': 'Not Loaded', 'confidence': 0.0}
-
-            except Exception as e:
-                 st.error(f"Error with Transformer prediction: {e}")
-                 results['Transformer'] = {'prediction': 'Error', 'confidence': 0.0}
-
-
-
-            # Display results with reliability context
-            st.write("---")
-            st.subheader("Individual Model Predictions:")
-
-            for model_name, result in results.items():
-                sentiment = result['prediction'].upper()
-                confidence = result['confidence']
-
-                if 'SVM' in model_name:
-                    conf_str = f"Decision Score: {confidence:.4f}"
-                elif model_name == 'Transformer':
-                    conf_str = f"Score: {confidence:.4f}"
-                else:
-                    conf_str = f"Confidence: {confidence:.4f}"
-
-                if sentiment == 'POSITIVE':
-                    st.markdown(f"✓ **{model_name}**: <span style='color:green'>**{sentiment}**</span> ({conf_str})", unsafe_allow_html=True)
-                elif sentiment == 'NEGATIVE':
-                    st.markdown(f"✗ **{model_name}**: <span style='color:red'>**{sentiment}**</span> ({conf_str})", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"  **{model_name}**: {sentiment} ({conf_str})", unsafe_allow_html=True)
-
-            positive_count = sum(1 for result in results.values() if result['prediction'].lower() == 'positive')
-            negative_count = sum(1 for result in results.values() if result['prediction'].lower() == 'negative')
-            total_predictions = positive_count + negative_count # Only count models that successfully predicted
-
-            st.write("---")
-            st.subheader("Overall Summary:")
-            st.write(f"Positive predictions: {positive_count}/{total_predictions}")
-            st.write(f"Negative predictions: {negative_count}/{total_predictions}")
-
-            if positive_count > negative_count:
-                overall = "POSITIVE"
-                st.markdown(f"Overall sentiment: <span style='color:green'>**{overall}**</span>", unsafe_allow_html=True)
-            elif negative_count > positive_count:
-                overall = "NEGATIVE"
-                st.markdown(f"Overall sentiment: <span style='color:red'>**{overall}**</span>", unsafe_allow_html=True)
-            else:
-                overall = "MIXED (TIE)"
-                st.markdown(f"Overall sentiment: **{overall}**", unsafe_allow_html=True)
-
-
-        else:
-            st.warning("Please enter a movie review to analyze.")
-
-else:
-    st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+                 st.warning("Standard TF-IDF models were not loaded successfully. Skipping
