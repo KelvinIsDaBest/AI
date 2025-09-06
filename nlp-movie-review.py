@@ -379,11 +379,23 @@ if models:
             st.pyplot(fig_avg)
             
             
-            best_approach = get_best_performing_approach(average_metrics)
+            best_approach, best_f1_score = get_best_performing_approach(average_metrics)
             
             if best_approach and best_f1_score:
                 st.success(f"🏆 **Best Performing Approach: {best_approach}**")
                 
+               
+                
+                # Performance insights
+                st.write("**Key Insights:**")
+                
+                if best_approach == "Transformer":
+                    st.info("🤖 The Transformer model shows superior performance, leveraging deep contextual understanding and pre-trained language representations.")
+                elif best_approach == "POS-Driven":
+                    st.info("📝 The POS-Driven approach excels by preserving sentiment-bearing words and utilizing linguistic features for better feature engineering.")
+                elif best_approach == "Standard TF-IDF":
+                    st.info("📊 The Standard TF-IDF approach provides solid baseline performance with traditional bag-of-words representation.")
+            
         else:
             st.warning("Could not calculate average metrics for approaches.")
             
