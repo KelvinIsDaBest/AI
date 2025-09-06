@@ -381,6 +381,10 @@ if models:
             
             best_approach = get_best_performing_approach(average_metrics)
             
+            if best_approach:
+                st.success(f"🏆 **Best Performing Approach: {best_approach}**")
+                
+
         else:
             st.warning("Could not calculate average metrics for approaches.")
             
