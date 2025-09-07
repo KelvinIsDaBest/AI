@@ -326,45 +326,6 @@ if models:
 
         plt.tight_layout()
         st.pyplot(fig)
-                  
-            # NEW: Best performing approach analysis
-            st.subheader("Performance Analysis")
-            
-            best_approach, best_f1_score = get_best_performing_approach(average_metrics)
-            
-            if best_approach and best_f1_score:
-                st.success(f"🏆 **Best Performing Approach: {best_approach}**")
-                st.write(f"**F1-Score: {best_f1_score:.4f}**")
-                
-                # Display detailed comparison
-                st.write("**Detailed Performance Comparison:**")
-                
-                comparison_text = ""
-                for approach in average_metrics.index:
-                    f1_score = average_metrics.loc[approach, 'F1-score']
-                    accuracy = average_metrics.loc[approach, 'Accuracy']
-                    precision = average_metrics.loc[approach, 'Precision']
-                    recall = average_metrics.loc[approach, 'Recall']
-                    
-                    if approach == best_approach:
-                        comparison_text += f"🥇 **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
-                    else:
-                        comparison_text += f"• **{approach}**: F1={f1_score:.4f}, Acc={accuracy:.4f}, Prec={precision:.4f}, Rec={recall:.4f}\n\n"
-                
-                st.markdown(comparison_text)
-                
-                # Performance insights
-                st.write("**Key Insights:**")
-                
-                if best_approach == "Transformer":
-                    st.info("🤖 The Transformer model shows superior performance, leveraging deep contextual understanding and pre-trained language representations.")
-                elif best_approach == "POS-Driven":
-                    st.info("📝 The POS-Driven approach excels by preserving sentiment-bearing words and utilizing linguistic features for better feature engineering.")
-                elif best_approach == "Standard TF-IDF":
-                    st.info("📊 The Standard TF-IDF approach provides solid baseline performance with traditional bag-of-words representation.")
-            
-        else:
-            st.warning("Could not calculate average metrics for approaches.")
             
     else:
         st.warning("Comparison data not available to display the graph.")
@@ -654,4 +615,5 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
 
