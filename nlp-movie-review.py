@@ -323,7 +323,7 @@ if models:
     st.write("---")
 
 # Confusion Matrices
-    st.subheader("Confusion Matrices")s
+    st.subheader("Confusion Matrices")
 
     classes = ['negative', 'positive']
 
@@ -574,6 +574,7 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
 
 
 
