@@ -326,49 +326,7 @@ if models:
 
         plt.tight_layout()
         st.pyplot(fig)
-        
-        # NEW: Average Model Performance per Approach
-        st.subheader("Average Model Performance per Approach")
-        
-        # Calculate average metrics
-        average_metrics = calculate_average_metrics(data['comparison_df'])
-        
-        if average_metrics is not None and not average_metrics.empty:
-            # Plot average performance
-            plot_df_average = average_metrics[metrics]
-            
-            fig_avg, ax_avg = plt.subplots(figsize=(12, 7))
-            bar_width = 0.15
-            x_avg = np.arange(len(plot_df_average.index))
-            
-            for i, metric in enumerate(metrics):
-                metric_values = plot_df_average[metric].values
-                bars = ax_avg.bar(x_avg + i * bar_width, metric_values, bar_width, label=metric)
-                
-                # Add value labels on top of bars
-                for bar in bars:
-                    height = bar.get_height()
-                    if pd.notna(height):
-                        ax_avg.annotate(f'{height:.4f}',
-                                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                                    xytext=(0, 3),
-                                    textcoords="offset points",
-                                    ha='center', va='bottom',
-                                    fontsize=9)
-            
-            ax_avg.set_ylabel('Score')
-            ax_avg.set_title('Average Model Performance per Approach')
-            ax_avg.set_xticks(x_avg + bar_width * (len(metrics) - 1) / 2)
-            ax_avg.set_xticklabels(plot_df_average.index)
-            ax_avg.legend()
-            
-            min_val_avg = plot_df_average.min().min() * 0.98 if not plot_df_average.empty else 0.0
-            max_val_avg = plot_df_average.max().max() * 1.02 if not plot_df_average.empty else 1.0
-            ax_avg.set_ylim(min_val_avg, max_val_avg)
-            
-            plt.tight_layout()
-            st.pyplot(fig_avg)
-            
+                  
             # NEW: Best performing approach analysis
             st.subheader("Performance Analysis")
             
@@ -696,3 +654,4 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
