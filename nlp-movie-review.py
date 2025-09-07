@@ -79,16 +79,6 @@ def calculate_average_metrics(comparison_df):
         st.error(f"Error calculating average metrics: {e}")
         return None
 
-def get_best_performing_approach(average_metrics_df):
-    """Determine which approach performs best based on F1-score"""
-    if average_metrics_df is None or average_metrics_df.empty:
-        return None, None
-    
-    best_approach = average_metrics_df['F1-score'].idxmax()
-    best_f1_score = average_metrics_df['F1-score'].max()
-    
-    return best_approach, best_f1_score
-
 # ALL METHODS
 def count_meaningful_words(text):
     # cleaning
@@ -333,38 +323,7 @@ if models:
     st.write("---")
 
 # Confusion Matrices
-    st.subheader("Confusion Matrices")
-    
-    # NEW: Confusion Matrix Explanation
-    with st.expander("📊 Understanding Confusion Matrices", expanded=False):
-        st.markdown("""
-        ### What is a Confusion Matrix?
-        
-        A **confusion matrix** is a table used to evaluate the performance of a classification model. For binary sentiment analysis (positive/negative), it's a 2×2 table that shows:
-        
-        ```
-                    Predicted
-                 Negative  Positive
-        Actual Negative   TN      FP
-               Positive   FN      TP
-        ```
-        
-        **Key Components:**
-        - **True Negative (TN)**: Correctly predicted negative reviews
-        - **False Positive (FP)**: Incorrectly predicted as positive (actually negative)
-        - **False Negative (FN)**: Incorrectly predicted as negative (actually positive)  
-        - **True Positive (TP)**: Correctly predicted positive reviews
-        
-        **What to Look For:**
-        - **Diagonal values (TN, TP)**: Higher values = better performance
-        - **Off-diagonal values (FP, FN)**: Lower values = fewer mistakes
-        - **Color intensity**: Darker colors typically indicate higher counts
-        
-        **Performance Implications:**
-        - **High FP**: Model is too optimistic (sees positive when it's negative)
-        - **High FN**: Model is too pessimistic (sees negative when it's positive)
-        - **Balanced diagonal**: Model performs well on both positive and negative reviews
-        """)
+    st.subheader("Confusion Matrices")s
 
     classes = ['negative', 'positive']
 
@@ -615,5 +574,6 @@ if models:
 
 else:
     st.error("Models could not be loaded. Please ensure models are saved and accessible.")
+
 
 
